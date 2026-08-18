@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, type ErrorInfo, type ReactNode, useEffect, useState } from 'react'
+import { Component, lazy, Suspense, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 import { AppShell } from './components/AppShell'
 import type { AppPage } from './components/Sidebar'
@@ -23,6 +23,12 @@ const pageIds = Object.keys(pageTitles) as AppPage[]
 const FactoryEditorPage = lazy(() => import('./pages/FactoryEditorPage').then((module) => ({ default: module.FactoryEditorPage })))
 const ItemsPage = lazy(() => import('./pages/ItemsPage').then((module) => ({ default: module.ItemsPage })))
 const SIMULATION_UI_INTERVAL_MS = 200
+
+const toastDurationMs = (tone: 'success' | 'error' | 'warning' | 'info'): number => {
+  if (tone === 'error') return 6000
+  if (tone === 'warning') return 4500
+  return 3000
+}
 
 export default function App() {
   const [page, setPage] = useState<AppPage>(() => readInitialPage())
@@ -50,6 +56,7 @@ export default function App() {
     applyRealtimeActivity: state.applyRealtimeActivity,
   })))
   const running = simulationStatus === 'running'
+  const toastTimers = useRef(new Map<string, number>())
 
   useEffect(() => {
     if (surface === 'workspace') uiPreferenceRepository.savePage(page)
@@ -66,6 +73,28 @@ export default function App() {
     const timer = window.setInterval(() => tickSimulation(SIMULATION_UI_INTERVAL_MS / 1000), SIMULATION_UI_INTERVAL_MS)
     return () => window.clearInterval(timer)
   }, [running, surface, tickSimulation])
+  useEffect(() => {
+    const timers = toastTimers.current
+    const activeIds = new Set(toasts.map((toast) => toast.id))
+    for (const [id, timer] of timers) {
+      if (!activeIds.has(id)) {
+        window.clearTimeout(timer)
+        timers.delete(id)
+      }
+    }
+    for (const toast of toasts) {
+      if (timers.has(toast.id)) continue
+      const timer = window.setTimeout(() => {
+        timers.delete(toast.id)
+        dismissToast(toast.id)
+      }, toastDurationMs(toast.tone))
+      timers.set(toast.id, timer)
+    }
+  }, [dismissToast, toasts])
+  useEffect(() => () => {
+    for (const timer of toastTimers.current.values()) window.clearTimeout(timer)
+    toastTimers.current.clear()
+  }, [])
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (surface === 'workspace' && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void saveFactory() }

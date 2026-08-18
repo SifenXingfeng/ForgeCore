@@ -31,6 +31,9 @@ type ItemEditorState =
   | { mode: 'create'; initialModelId?: string }
   | { mode: 'edit'; item: Item }
 
+const coreItemsRoot = `${import.meta.env.BASE_URL}3d/core/items/v1`
+const modelAssetUrl = (relativePath: string): string => `${coreItemsRoot}/${relativePath}`
+
 const categoryNames: Record<string, string> = { basic: '基础形状', material: '工业原料', mechanical: '机械零件', electronic: '电子部件', package: '包装物流' }
 
 const parameterNames: Record<string, string> = {
@@ -69,6 +72,7 @@ function optionLabel(value: ModelParameterValue): string {
 export function ItemsPage() {
   const { items, recipes, inventory, objects, simulation, upsertItem, removeItem } = useForgeStore()
   const [catalog, setCatalog] = useState<ItemModelCatalog | null>(null)
+  const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [selected, setSelected] = useState<ItemModelRecord | null>(null)
@@ -76,9 +80,23 @@ export function ItemsPage() {
   const [pendingDelete, setPendingDelete] = useState<Item | null>(null)
   const [visibleCount, setVisibleCount] = useState(12)
 
-  useEffect(() => {
-    fetch('/3d/core/items/v1/catalog.json').then((response) => response.json()).then(setCatalog).catch(() => setCatalog(null))
-  }, [])
+  const loadCatalog = () => {
+    setCatalogStatus('loading')
+    void fetch(`${coreItemsRoot}/catalog.json`)
+      .then((response) => {
+        if (!response.ok) throw new Error(`catalog request failed: ${response.status}`)
+        return response.json() as Promise<ItemModelCatalog>
+      })
+      .then((nextCatalog) => {
+        setCatalog(nextCatalog)
+        setCatalogStatus('ready')
+      })
+      .catch(() => {
+        setCatalog(null)
+        setCatalogStatus('error')
+      })
+  }
+  useEffect(() => { loadCatalog() }, [])
   const models = useMemo(() => (catalog?.models ?? []).filter((model) => (category === 'all' || model.category === category) && `${model.id} ${model.nameZh} ${model.nameEn}`.toLowerCase().includes(query.toLowerCase())), [catalog, category, query])
   useEffect(() => { setVisibleCount(12) }, [category, query])
   const visibleModels = models.slice(0, visibleCount)
@@ -87,7 +105,7 @@ export function ItemsPage() {
     <div className="page">
       <header className="page-heading">
         <div><span className="eyebrow">ITEM & MODEL REGISTRY</span><h1>物品与模型库</h1><p>以 36 个 ForgeCore 原创参数化模型定义原料、半成品和产品。业务属性与视觉参数保持分离</p></div>
-        <button className="button button--primary" disabled={!catalog} onClick={() => setItemEditor({ mode: 'create', initialModelId: selected?.id })}><Plus size={16} />创建物品</button>
+        <button className="button button--primary" disabled={catalogStatus !== 'ready'} onClick={() => setItemEditor({ mode: 'create', initialModelId: selected?.id })}><Plus size={16} />创建物品</button>
       </header>
       <BusinessItemLibrary
         items={items}
@@ -126,11 +144,12 @@ export function ItemsPage() {
             <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索模型 ID 或名称" /></label>
             <span className="toolbar-count">显示 {visibleModels.length} / {models.length} 项</span>
           </div>
-          {!catalog && <div className="loading-card">正在读取已审计模型目录…</div>}
+          {catalogStatus === 'loading' && <div className="loading-card" role="status">正在读取模型目录</div>}
+          {catalogStatus === 'error' && <div className="loading-card loading-card--error" role="alert"><strong>模型目录未载入</strong><button className="button button--secondary button--compact" onClick={loadCatalog}>重试</button></div>}
           <div className="model-grid">
             {visibleModels.map((model) => (
               <button className={`model-card ${selected?.id === model.id ? 'is-selected' : ''}`} key={model.id} onClick={() => setSelected(model)}>
-                <ModelPreview src={`/3d/core/items/v1/${model.previewPath}`} alt={`${model.nameZh} 模型预览`} />
+                <ModelPreview src={modelAssetUrl(model.previewPath)} alt={`${model.nameZh} 模型预览`} loading="eager" />
                 <div className="model-card__content"><span className="model-card__category">{categoryNames[model.category]}</span><h3>{model.nameZh}</h3><p>{model.nameEn}</p><div><StatusBadge tone="success">核心可用</StatusBadge><small>{model.metrics.triangleCount} tris</small></div></div>
                 {selected?.id === model.id && <span className="model-card__check"><Check size={14} /></span>}
               </button>
@@ -190,7 +209,7 @@ function BusinessItemLibrary({
             return (
               <article className="business-item-card" key={item.id}>
                 <div className="business-item-card__preview">
-                  {model ? <ModelPreview src={`/3d/core/items/v1/${model.previewPath}`} alt={`${item.name} 模型预览`} /> : <PackageOpen />}
+                  {model ? <ModelPreview src={modelAssetUrl(model.previewPath)} alt={`${item.name} 模型预览`} loading="eager" /> : <PackageOpen />}
                   <span>{Object.keys(item.modelParameters).length} 项参数覆盖</span>
                 </div>
                 <div className="business-item-card__body">
@@ -215,7 +234,7 @@ function BusinessItemLibrary({
 
 function ModelInspector({ model, onUse }: { model: ItemModelRecord; onUse: () => void }) {
   const parameters = Object.entries(model.parameters).filter(([name]) => !['texture', 'emission'].includes(name)).slice(0, 8)
-  return <><span className="eyebrow">MODEL DETAILS</span><h2>{model.nameZh}</h2><div className="inspector-preview"><ModelPreview src={`/3d/core/items/v1/${model.previewPath}`} alt={model.nameZh} /></div><dl className="detail-list"><div><dt>Model ID</dt><dd>{model.id}</dd></div><div><dt>参数等级</dt><dd>Level {model.parameterizationLevel}</dd></div><div><dt>三角形</dt><dd>{model.metrics.triangleCount}</dd></div><div><dt>格式</dt><dd>GLB 2.0</dd></div></dl><h3 className="section-title">可调参数</h3><div className="parameter-chips">{parameters.map(([name]) => <span key={name}>{parameterLabel(name)}</span>)}</div><button className="button button--primary button--full" onClick={onUse}>使用此模型创建物品</button></>
+  return <><span className="eyebrow">MODEL DETAILS</span><h2>{model.nameZh}</h2><div className="inspector-preview"><ModelPreview src={modelAssetUrl(model.previewPath)} alt={model.nameZh} loading="eager" /></div><dl className="detail-list"><div><dt>Model ID</dt><dd>{model.id}</dd></div><div><dt>参数等级</dt><dd>Level {model.parameterizationLevel}</dd></div><div><dt>三角形</dt><dd>{model.metrics.triangleCount}</dd></div><div><dt>格式</dt><dd>GLB 2.0</dd></div></dl><h3 className="section-title">可调参数</h3><div className="parameter-chips">{parameters.map(([name]) => <span key={name}>{parameterLabel(name)}</span>)}</div><button className="button button--primary button--full" onClick={onUse}>使用此模型创建物品</button></>
 }
 
 function ItemEditorModal({ models, initialModel, initialItem, onClose, onSave }: { models: ItemModelRecord[]; initialModel?: string; initialItem?: Item; onClose: () => void; onSave: (item: Item) => void }) {

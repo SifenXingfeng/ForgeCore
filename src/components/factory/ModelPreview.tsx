@@ -10,6 +10,7 @@ export interface ModelPreviewProps {
   fit?: 'contain' | 'cover'
   onLoad?: () => void
   onError?: () => void
+  loading?: 'eager' | 'lazy'
 }
 
 type LoadState = 'empty' | 'loading' | 'loaded' | 'error'
@@ -78,6 +79,7 @@ export function ModelPreview({
   fit = 'contain',
   onLoad,
   onError,
+  loading = 'lazy',
 }: ModelPreviewProps) {
   const [loadState, setLoadState] = useState<LoadState>(src ? 'loading' : 'empty')
 
@@ -104,7 +106,7 @@ export function ModelPreview({
         <img
           src={src}
           alt={alt}
-          loading="lazy"
+          loading={loading}
           decoding="async"
           draggable={false}
           onLoad={() => {

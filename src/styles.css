@@ -2708,6 +2708,10 @@ svg {
 }
 
 .loading-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 18px;
   margin-bottom: 12px;
   color: var(--fc-info);
@@ -2716,6 +2720,9 @@ svg {
   border: 1px solid color-mix(in srgb, var(--fc-info) 24%, white);
   border-radius: var(--fc-radius-sm);
 }
+
+.loading-card--error { color: var(--fc-text-strong); background: var(--fc-surface-1); border-color: var(--fc-border-strong); }
+.loading-card--error strong { font-size: 13px; font-weight: 600; }
 
 .model-grid {
   display: grid;
