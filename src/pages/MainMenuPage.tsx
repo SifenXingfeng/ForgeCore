@@ -3,7 +3,7 @@ import { ArrowRight, Clock3, Grid3X3, LogOut, Plus, UserRound } from 'lucide-rea
 import { motion } from 'motion/react'
 import type { AuthUser } from '../repository/authRepository'
 
-const VIDEO_URL = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_215831_c6a8989c-d716-4d8d-8745-e972a2eec711.mp4'
+const VIDEO_URL = '/media/1.mp4'
 const ease = [0.16, 1, 0.3, 1] as const
 
 interface MainMenuPageProps {
@@ -43,7 +43,7 @@ export function MainMenuPage({ user, hasSavedFactory, onContinue, onCreateFactor
       </motion.header>
 
       <motion.section className="menu-landing__content" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35, duration: 0.9, ease }}>
-        <h1>选择工厂。</h1>
+        <h1>选择工程</h1>
         <div className="menu-choice-grid">
           <button className="menu-choice menu-choice--primary" type="button" disabled={!hasSavedFactory} onClick={onContinue}>
             <Clock3 /><strong>{hasSavedFactory ? '继续工厂' : '暂无存档'}</strong><ArrowRight />

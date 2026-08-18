@@ -30,7 +30,7 @@ export function RecipesPage({ onNavigate }: { onNavigate: (page: AppPage) => voi
         <div>
           <span className="eyebrow">PROCESS DEFINITION / RECIPE FLOW</span>
           <h1>配方与工艺路线</h1>
-          <p>创建最多三种原料、三种产物的配方，并把它绑定到任意通用机器。仿真直接读取这些业务数据。</p>
+          <p>创建最多三种原料、三种产物的配方，并把它绑定到任意通用机器。仿真直接读取这些业务数据</p>
         </div>
         <button className="button button--primary" onClick={beginCreate}>
           <Plus size={16} />{items.length === 0 ? '先创建物品' : '新建配方'}
@@ -72,7 +72,7 @@ export function RecipesPage({ onNavigate }: { onNavigate: (page: AppPage) => voi
             <EmptyState
               icon={<Beaker />}
               title="建立第一条工艺关系"
-              description={items.length === 0 ? '先创建可被配方引用的业务物品。' : '定义输入、输出、数量和处理时间，随后可在机器属性中绑定。'}
+              description={items.length === 0 ? '先创建可被配方引用的业务物品' : '定义输入、输出、数量和处理时间，随后可在机器属性中绑定'}
               action={<button className="button button--primary" onClick={beginCreate}>{items.length === 0 ? '创建物品' : '新建配方'}</button>}
             />
           )}
@@ -87,9 +87,9 @@ export function RecipesPage({ onNavigate }: { onNavigate: (page: AppPage) => voi
                 <span className="vertical-flow__node vertical-flow__node--output">{lineSummary(recipe.outputs, items)}</span>
               </div>
             ))}
-            {recipes.every((recipe) => !recipe.enabled) ? <p className="muted">暂无启用的工艺链。</p> : null}
+            {recipes.every((recipe) => !recipe.enabled) ? <p className="muted">暂无启用的工艺链</p> : null}
           </div>
-          <div className="audit-note"><strong>执行口径</strong><p>配方只定义业务加工关系；物品质量和堆叠数不会改变模型网格。</p></div>
+          <div className="audit-note"><strong>执行口径</strong><p>配方只定义业务加工关系；物品质量和堆叠数不会改变模型网格</p></div>
         </Panel>
       </div>
 
@@ -112,7 +112,7 @@ export function RecipesPage({ onNavigate }: { onNavigate: (page: AppPage) => voi
 
 function RecipeDetail({ recipe, items, onEdit, onToggle, onDelete }: { recipe: Recipe; items: Item[]; onEdit: () => void; onToggle: () => void; onDelete: () => void }) {
   return <>
-    <p className="muted">{recipe.description || '尚未填写工艺说明。'}</p>
+    <p className="muted">{recipe.description || '尚未填写工艺说明'}</p>
     <div className="recipe-route">
       <RouteGroup label="INPUT" lines={recipe.inputs} items={items} />
       <div className="recipe-process"><Clock3 size={20} /><strong>{recipe.processingTimeSec} 秒</strong><span>标准处理周期</span></div>

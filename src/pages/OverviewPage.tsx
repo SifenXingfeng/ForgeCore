@@ -18,7 +18,7 @@ export function OverviewPage({ onNavigate }: { onNavigate: (page: AppPage) => vo
         <div>
           <span className="eyebrow">FACTORY OPERATIONS / LIVE OVERVIEW</span>
           <h1>{factory.name}</h1>
-          <p>从布局、生产到库存的统一运行视图。所有初版指标均来自本地确定性仿真。</p>
+          <p>从布局、生产到库存的统一运行视图。所有初版指标均来自本地确定性仿真</p>
         </div>
         <div className="page-heading__actions">
           <StatusBadge tone={running ? 'success' : hasConfiguredProduction ? 'warning' : 'neutral'}>{running ? `仿真运行中 · ${simulation.speed}×` : hasConfiguredProduction ? '仿真已暂停' : '等待配置生产链'}</StatusBadge>
@@ -61,7 +61,7 @@ export function OverviewPage({ onNavigate }: { onNavigate: (page: AppPage) => vo
         </Panel>
 
         <Panel title="设备负载" eyebrow="MACHINE UTILIZATION" className="overview-grid__wide">
-          {machines.length ? <MiniBars values={machines.map((machine) => metrics.machineUtilization[machine.id] ?? 0)} labels={machines.map((machine) => machine.name.replace('工位', ''))} /> : <div className="empty-state"><Cpu className="empty-state__icon" /><h3>还没有机器</h3><p>从工厂编辑器放置通用机器，再自行命名并绑定配方。</p></div>}
+          {machines.length ? <MiniBars values={machines.map((machine) => metrics.machineUtilization[machine.id] ?? 0)} labels={machines.map((machine) => machine.name.replace('工位', ''))} /> : <div className="empty-state"><Cpu className="empty-state__icon" /><h3>还没有机器</h3><p>从工厂编辑器放置通用机器，再自行命名并绑定配方</p></div>}
           <div className="legend-row"><span><i className="legend-dot legend-dot--green" />运行</span><span><i className="legend-dot legend-dot--yellow" />等待</span><span><i className="legend-dot" />离线</span></div>
         </Panel>
 
@@ -76,13 +76,13 @@ export function OverviewPage({ onNavigate }: { onNavigate: (page: AppPage) => vo
         <Panel title="最近事件" eyebrow="ACTIVITY LOG">
           <ol className="activity-list">
             {activities.slice(0, 5).map((event) => <li key={event.id}><span className={`activity-list__icon activity-list__icon--${event.tone}`}><Cpu size={14} /></span><div><strong>{event.title}</strong><small>{formatTime(event.elapsedSimSec)} · {event.description}</small></div></li>)}
-            {!activities.length && <li><span className="activity-list__icon"><Activity size={14} /></span><div><strong>等待第一条运行事件</strong><small>配置生产链并启动仿真后，事件会出现在这里。</small></div></li>}
+            {!activities.length && <li><span className="activity-list__icon"><Activity size={14} /></span><div><strong>等待第一条运行事件</strong><small>配置生产链并启动仿真后，事件会出现在这里</small></div></li>}
           </ol>
         </Panel>
       </div>
 
       <section className="quick-start">
-        <div><span className="eyebrow">EMPTY FACTORY WORKFLOW</span><h2>从空白工厂开始</h2><p>ForgeCore 不再替你假设设备和产品。先定义物品与配方，再放置并命名机器，最后铺设传送带。</p></div>
+        <div><span className="eyebrow">EMPTY FACTORY WORKFLOW</span><h2>从空白工厂开始</h2><p>ForgeCore 不再替你假设设备和产品。先定义物品与配方，再放置并命名机器，最后铺设传送带</p></div>
         <div className="process-strip">
           <span><PackageCheck />创建物品</span><ArrowRight /><span><Cpu />设计配方</span><ArrowRight /><span><Factory />放置机器</span><ArrowRight /><span><Boxes />铺设传送带</span>
         </div>
@@ -97,10 +97,10 @@ function average(values: number[]) {
 }
 
 function deriveBottleneck(blockedObjectCount: number, machines: ReturnType<typeof useForgeStore.getState>['objects']) {
-  if (!machines.length) return { severity: 'success', title: '等待工厂配置', description: '当前是空白项目，放置并配置机器后再分析瓶颈。' }
+  if (!machines.length) return { severity: 'success', title: '等待工厂配置', description: '当前是空白项目，放置并配置机器后再分析瓶颈' }
   const blocked = machines.find((machine) => machine.status === 'blocked')
-  if (blockedObjectCount > 0 || blocked) return { severity: 'warning', title: `${blocked?.name ?? '产线'}发生阻塞`, description: '输出容量已达到上限，请检查下游输送或成品区。' }
-  return { severity: 'success', title: '当前没有阻塞信号', description: '产线输入、处理和输出仍保持连通。' }
+  if (blockedObjectCount > 0 || blocked) return { severity: 'warning', title: `${blocked?.name ?? '产线'}发生阻塞`, description: '输出容量已达到上限，请检查下游输送或成品区' }
+  return { severity: 'success', title: '当前没有阻塞信号', description: '产线输入、处理和输出仍保持连通' }
 }
 
 function formatTime(seconds: number) {

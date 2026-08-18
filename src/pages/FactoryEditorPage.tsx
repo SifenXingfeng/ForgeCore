@@ -964,7 +964,7 @@ function ObjectInspector({
       <>
         <div className="connection-route"><span>{from}</span><i><Boxes /></i><span>{to}</span></div>
         <dl className="compact-details"><div><dt>路径长度</dt><dd>{Math.hypot(horizontalRunM, config.riseM ?? 0).toFixed(1)} m</dd></div><div><dt>{isIncline ? '跨层方向' : '自动弯道'}</dt><dd>{isIncline ? direction : Math.max(0, config.path.length - 2)}</dd></div><div><dt>容量</dt><dd>{config.capacity} 件</dd></div></dl>
-        {isIncline ? <p className="editor-float__note">{fromFloor?.name} → {toFloor?.name} · 垂直高度 {(config.riseM ?? 0).toFixed(1)}m · 水平投影 {horizontalRunM.toFixed(1)}m · 坡度 {gradePercent.toFixed(0)}%；两层端头都可继续吸附拉线。</p> : <p className="editor-float__note">直线段、弯道和两端均可参与线路吸附；物料按整条折线路径运行。</p>}
+        {isIncline ? <p className="editor-float__note">{fromFloor?.name} → {toFloor?.name} · 垂直高度 {(config.riseM ?? 0).toFixed(1)}m · 水平投影 {horizontalRunM.toFixed(1)}m · 坡度 {gradePercent.toFixed(0)}%；两层端头都可继续吸附拉线</p> : <p className="editor-float__note">直线段、弯道和两端均可参与线路吸附；物料按整条折线路径运行</p>}
         {isIncline ? <button className="floating-design-link" onClick={onReverseIncline}>{direction === '向上运输' ? <ArrowDown /> : <ArrowUp />}切换为{direction === '向上运输' ? '向下' : '向上'}运输</button> : null}
         <button className="floating-danger" onClick={onDelete}><Trash2 />删除整条传送带</button>
       </>
@@ -990,7 +990,7 @@ function ObjectInspector({
           recipe={machineRecipe}
           onConveyorOutput={onConveyorOutput}
         />
-        <p className="editor-float__note">机器不预设工艺。请先到“配方工艺”设计配方，再在这里绑定。</p>
+        <p className="editor-float__note">机器不预设工艺。请先到“配方工艺”设计配方，再在这里绑定</p>
         <button className="floating-design-link" onClick={onDesignRecipes}>前往配方工艺 <ChevronRight /></button>
       </> : null}
       {warehouseConfig ? <>
@@ -1006,7 +1006,7 @@ function ObjectInspector({
           onSetInfiniteSupply={onSetInfiniteSupply}
           onManageItems={onManageItems}
         />
-        <p className="editor-float__note">{isShelf ? '架上满载货物是货架用途的视觉表达；货架不连接传送带，实际有限数量可无限堆叠，也可由 AGV 或无人机取货、存货，并可逐物品设为无限。' : '仓内纸箱用于货物容器表现；上方清单是实际库存。无限供应只作用于本仓库出货，不占用或伪造有限库存数量。'}</p>
+        <p className="editor-float__note">{isShelf ? '架上满载货物是货架用途的视觉表达；货架不连接传送带，实际有限数量可无限堆叠，也可由 AGV 或无人机取货、存货，并可逐物品设为无限' : '仓内纸箱用于货物容器表现；上方清单是实际库存。无限供应只作用于本仓库出货，不占用或伪造有限库存数量'}</p>
       </> : null}
       {vehicleConfig ? (
         <VehicleProgramPanel
@@ -1179,7 +1179,7 @@ function VehicleProgramPanel({
             <option value="at-most">达到或低于</option>
           </select>
           <label className="agv-program-inline-input"><input aria-label={`${vehicle.name} 启动阈值`} type="number" min={0} step={1} value={program.triggerQuantity} onChange={(event) => patchProgram({ triggerQuantity: Number(event.target.value) })} />件时启动</label>
-        </> : <small>每趟完成后，只要起点仍有货且终点有容量就继续运输。</small>}
+        </> : <small>每趟完成后，只要起点仍有货且终点有容量就继续运输</small>}
       </div>
 
       <div className={`agv-runtime-strip agv-runtime-strip--${runtime?.motionStatus ?? 'idle'}`} aria-live="polite">
@@ -1193,12 +1193,12 @@ function VehicleProgramPanel({
         <label>载重<input aria-label={`${vehicle.name} 最大载重`} type="number" min={1} max={isDrone ? 1000 : 100000} step={isDrone ? 5 : 10} value={config.maxPayloadKg ?? (isDrone ? 30 : 500)} onChange={(event) => onChange({ maxPayloadKg: Number(event.target.value) })} /><span>kg</span></label>
       </div>
 
-      {storageOptions.length < 2 ? <p className="editor-float__note">{isDrone ? '工厂内' : '1F'}至少需要两个仓库或货架，才能设置起点和终点。</p> : null}
+      {storageOptions.length < 2 ? <p className="editor-float__note">{isDrone ? '工厂内' : '1F'}至少需要两个仓库或货架，才能设置起点和终点</p> : null}
       {items.length === 0 ? <button className="floating-design-link" onClick={onManageItems}>先定义可运输物品 <ChevronRight /></button> : null}
-      <p className="editor-float__note">货架可直接作为取货或存货点：装货时扣减货架库存，卸货时写回货架库存；货架仍不连接传送带。</p>
+      <p className="editor-float__note">货架可直接作为取货或存货点：装货时扣减货架库存，卸货时写回货架库存；货架仍不连接传送带</p>
       <p className="editor-float__note">{isDrone
-        ? '货物仓库取货使用出货口外侧悬停点，存货使用入货口外侧悬停点，并从三个对应端口中选择可达最短航点。黄色三维虚线与箭头从无人机流向目标点；路线允许直线、面对角和体对角移动。跨层下降前会先飞到无建筑遮挡的净空列；传送带与 AGV 不构成空中障碍，建筑和其他无人机会触发三维绕行与固定优先级协调。'
-        : '黄色虚线与箭头从小车向目标点流动，表示 1F 内允许安全斜线的八方向最短路线；遇到停驻车辆会先动态绕行，红色表示确实没有安全通路，蓝色表示固定通行权协调器正在引导低优先级车辆让行。'}</p>
+        ? '货物仓库取货使用出货口外侧悬停点，存货使用入货口外侧悬停点，并从三个对应端口中选择可达最短航点。黄色三维虚线与箭头从无人机流向目标点；路线允许直线、面对角和体对角移动。跨层下降前会先飞到无建筑遮挡的净空列；传送带与 AGV 不构成空中障碍，建筑和其他无人机会触发三维绕行与固定优先级协调'
+        : '黄色虚线与箭头从小车向目标点流动，表示 1F 内允许安全斜线的八方向最短路线；遇到停驻车辆会先动态绕行，红色表示确实没有安全通路，蓝色表示固定通行权协调器正在引导低优先级车辆让行'}</p>
     </section>
   )
 }
@@ -1267,7 +1267,7 @@ function MachinePortRouting({
           )
         })}
       </div>
-      <p>每个端口只能连接一条传送带；已连接端口不会再次参与自动吸附。</p>
+      <p>每个端口只能连接一条传送带；已连接端口不会再次参与自动吸附</p>
     </section>
   )
 }
@@ -1309,7 +1309,7 @@ function WarehousePortRouting({
         {items.length === 0 ? (
           <div className="warehouse-inventory-empty">
             <strong>还没有可{isShelf ? '上架' : '入库'}的物品</strong>
-            <small>先定义至少一种物品，{isShelf ? '货架' : '仓库'}才会生成对应库存记录。</small>
+            <small>先定义至少一种物品，{isShelf ? '货架' : '仓库'}才会生成对应库存记录</small>
             <button onClick={onManageItems}>前往定义物品</button>
           </div>
         ) : items.map((item) => {
@@ -1389,8 +1389,8 @@ function WarehousePortRouting({
           )
         })}
       </div>
-      <p>每个端口只能连接一条传送带；有限库存按实际数量扣减，无限供应可持续出货且不扣数量。</p>
-      </> : <p>货架不设传送带出货口或入货口，也不参与传送带吸附；库存可由本面板手动维护，或通过 AGV、无人机实际取货和存货。</p>}
+      <p>每个端口只能连接一条传送带；有限库存按实际数量扣减，无限供应可持续出货且不扣数量</p>
+      </> : <p>货架不设传送带出货口或入货口，也不参与传送带吸附；库存可由本面板手动维护，或通过 AGV、无人机实际取货和存货</p>}
     </section>
   )
 }

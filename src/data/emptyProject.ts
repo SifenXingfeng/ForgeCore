@@ -42,20 +42,20 @@ export const createEmptyMetrics = (): FactoryMetrics => ({
 const createTransportCapabilities = (): TransportCapability[] => [
   {
     id: 'capability-conveyor', mode: 'conveyor', label: '传送带运输', status: 'available', enabled: true,
-    description: '支持按网格轨迹铺设、自动转弯和物料路径运动。',
-    auditNote: '使用用户实际绘制的折线路径，不注入预设线路。',
+    description: '支持按网格轨迹铺设、自动转弯和物料路径运动',
+    auditNote: '使用用户实际绘制的折线路径，不注入预设线路',
     features: ['定向路径', '容量限制', '3D 物品运动'],
   },
   {
     id: 'capability-agv', mode: 'agv', label: 'AGV 智能物流', status: 'available', enabled: true,
-    description: '支持可视化任务配置、库存触发、A* 最短路、动态避障和多车协调运输。',
-    auditNote: '导航、安全包络、载荷与任务状态来自独立业务数据；Cels vendor 外观仍保持视觉待派生审计状态。',
+    description: '支持可视化任务配置、库存触发、A* 最短路、动态避障和多车协调运输',
+    auditNote: '导航、安全包络、载荷与任务状态来自独立业务数据；Cels vendor 外观仍保持视觉待派生审计状态',
     features: ['A* 最短路径', '库存触发运输', '动态避障与通行权协调'],
   },
   {
     id: 'capability-drone', mode: 'drone', label: '货运无人机', status: 'available', enabled: true,
-    description: '支持小批量跨楼层运输、26 邻域三维 A*、安全下降和多机动态避障。',
-    auditNote: '业务载荷、速度、安全包络与任务状态来自独立数据；Count Infinity vendor 原件只作为视觉层，仍保持 derived pending。',
+    description: '支持小批量跨楼层运输、26 邻域三维 A*、安全下降和多机动态避障',
+    auditNote: '业务载荷、速度、安全包络与任务状态来自独立数据；Count Infinity vendor 原件只作为视觉层，仍保持 derived pending',
     features: ['三维 A* 最短路径', '跨楼层真实运输', '建筑与多机动态避障'],
   },
 ]

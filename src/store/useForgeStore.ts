@@ -750,7 +750,7 @@ const updateMachineState = (
         runtime.state = 'idle'
         pushActivity(activities, simulation, {
           title: `${machineObject?.name ?? '机器'} 完成加工`,
-          description: `${recipe.name}已产生 ${recipe.outputs.reduce((sum, line) => sum + line.quantity, 0)} 件输出。`,
+          description: `${recipe.name}已产生 ${recipe.outputs.reduce((sum, line) => sum + line.quantity, 0)} 件输出`,
           tone: 'success',
           objectId: runtime.machineObjectId,
         })
@@ -821,7 +821,7 @@ const acceptTransit = (
     simulation.productionEventsSec.push(simulation.elapsedSimSec)
     pushActivity(activities, simulation, {
       title: '成品已下线',
-      description: `${transit.quantity} 件驱动齿轮已进入成品区，累计 ${simulation.totalFinished} 件。`,
+      description: `${transit.quantity} 件驱动齿轮已进入成品区，累计 ${simulation.totalFinished} 件`,
       tone: 'success',
     })
     return 'accepted'
@@ -860,7 +860,7 @@ const acceptTransit = (
     target.quantity += transit.quantity
     pushActivity(activities, simulation, {
       title: '货物已入库',
-      description: `${transit.itemId} ×${transit.quantity} 已从入货口进入 ${warehouse.name}。`,
+      description: `${transit.itemId} ×${transit.quantity} 已从入货口进入 ${warehouse.name}`,
       tone: 'success',
     })
     return 'accepted'
@@ -1428,7 +1428,7 @@ const handleAgvArrival = (
     const destinationObject = objects.find((candidate) => candidate.id === runtime.missionDestinationObjectId)
     pushActivity(activities, simulation, {
       title: `${object.name} 完成装货`,
-      description: `${items.find((item) => item.id === runtime.cargoItemId)?.name ?? runtime.cargoItemId} ×${quantity}，前往 ${destinationObject?.name ?? '终点'}。`,
+      description: `${items.find((item) => item.id === runtime.cargoItemId)?.name ?? runtime.cargoItemId} ×${quantity}，前往 ${destinationObject?.name ?? '终点'}`,
       tone: 'success',
       objectId: object.id,
     })
@@ -2072,7 +2072,7 @@ const handleDroneArrival = (
     const destinationObject = objects.find((candidate) => candidate.id === runtime.missionDestinationObjectId)
     pushActivity(activities, simulation, {
       title: `${object.name} 完成空中装货`,
-      description: `${items.find((item) => item.id === runtime.cargoItemId)?.name ?? runtime.cargoItemId} ×${quantity}，飞往 ${destinationObject?.name ?? '终点'}。`,
+      description: `${items.find((item) => item.id === runtime.cargoItemId)?.name ?? runtime.cargoItemId} ×${quantity}，飞往 ${destinationObject?.name ?? '终点'}`,
       tone: 'success',
       objectId: object.id,
     })
@@ -2535,7 +2535,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       floors: [...floors, floor],
       factory: { ...state.factory, schemaVersion: Math.max(4, state.factory.schemaVersion), updatedAt: nowIso() },
       saveStatus: 'dirty',
-      toasts: addToast(state, { title: `${level}F 已创建`, description: `层高 ${normalizedHeight.toFixed(1)}m，可切换到新楼层继续建造。`, tone: 'success' }),
+      toasts: addToast(state, { title: `${level}F 已创建`, description: `层高 ${normalizedHeight.toFixed(1)}m，可切换到新楼层继续建造`, tone: 'success' }),
     })
     return id
   },
@@ -2546,7 +2546,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const state = get()
     const normalized = name.trim()
     if (!normalized) {
-      set({ toasts: addToast(state, { title: '名称不能为空', description: '请输入一个可识别的设备名称。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '名称不能为空', description: '请输入一个可识别的设备名称', tone: 'warning' }) })
       return false
     }
     if (!state.objects.some((object) => object.id === id)) return false
@@ -2564,7 +2564,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const snap = (value: number) => Math.round(value / state.factory.gridSizeM) * state.factory.gridSizeM
     const floorId = input.floorId ?? state.floors[0]?.id ?? `floor-${state.factory.id}`
     if (input.kind === 'agv' && state.floors.find((floor) => floor.id === floorId)?.level !== 1) {
-      set({ toasts: addToast(state, { title: 'AGV 只能建造在 1F', description: '上层和跨层物流请使用货运无人机。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: 'AGV 只能建造在 1F', description: '上层和跨层物流请使用货运无人机', tone: 'warning' }) })
       return ''
     }
     const baseConfig = input.config ?? defaultConfigForKind(input.kind)
@@ -2612,7 +2612,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       updatedAt: nowIso(),
     }
     if (!canFitAt(object, object.transform.x, object.transform.z, state.factory, state.objects)) {
-      set({ toasts: addToast(state, { title: '无法放置设施', description: '位置超出工厂或与现有设施重叠。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '无法放置设施', description: '位置超出工厂或与现有设施重叠', tone: 'warning' }) })
       return ''
     }
     const objects = [...state.objects, object]
@@ -2635,21 +2635,21 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
   addConveyorPath: (path, fromObjectId = null, toObjectId = null, fromPortIndex = null, toPortIndex = null, requestedFloorId) => {
     const state = get()
     if (path.length < 2 || polylineLength(path) < state.factory.gridSizeM) {
-      set({ toasts: addToast(state, { title: '传送带太短', description: '请至少跨越一个网格单元。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '传送带太短', description: '请至少跨越一个网格单元', tone: 'warning' }) })
       return ''
     }
     const fromObject = state.objects.find((object) => object.id === fromObjectId)
     const toObject = state.objects.find((object) => object.id === toObjectId)
     if (fromObject?.kind === 'shelf' || toObject?.kind === 'shelf') {
-      set({ toasts: addToast(state, { title: '货架不连接传送带', description: '货架没有出货口或入货口，请在属性面板中维护其库存。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '货架不连接传送带', description: '货架没有出货口或入货口，请在属性面板中维护其库存', tone: 'warning' }) })
       return ''
     }
     if (fromObject?.config.kind === 'conveyor' && fromObject.config.toObjectId) {
-      set({ toasts: addToast(state, { title: '传送带末端已连接', description: '请选择仍为空闲的传送带末端继续拉线。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '传送带末端已连接', description: '请选择仍为空闲的传送带末端继续拉线', tone: 'warning' }) })
       return ''
     }
     if (toObject?.config.kind === 'conveyor' && toObject.config.fromObjectId) {
-      set({ toasts: addToast(state, { title: '传送带起点已连接', description: '请选择仍为空闲的传送带起点完成连接。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '传送带起点已连接', description: '请选择仍为空闲的传送带起点完成连接', tone: 'warning' }) })
       return ''
     }
     const resolvedFromPort = fromObject && supportsTripleConveyorPorts(fromObject)
@@ -2659,11 +2659,11 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       ? toPortIndex ?? firstAvailablePort(state.objects, toObject.id, 'input')
       : null
     if (fromObject && supportsTripleConveyorPorts(fromObject) && (resolvedFromPort == null || isPortOccupied(state.objects, fromObject.id, 'output', resolvedFromPort))) {
-      set({ toasts: addToast(state, { title: '出货口已占用', description: '每个出货口只能连接一条传送带，请选择空闲端口。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '出货口已占用', description: '每个出货口只能连接一条传送带，请选择空闲端口', tone: 'warning' }) })
       return ''
     }
     if (toObject && supportsTripleConveyorPorts(toObject) && (resolvedToPort == null || isPortOccupied(state.objects, toObject.id, 'input', resolvedToPort))) {
-      set({ toasts: addToast(state, { title: '入货口已占用', description: '每个入货口只能连接一条传送带，请选择空闲端口。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '入货口已占用', description: '每个入货口只能连接一条传送带，请选择空闲端口', tone: 'warning' }) })
       return ''
     }
     const startPort = fromObject
@@ -2683,7 +2683,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       ?? state.floors[0]?.id
       ?? `floor-${state.factory.id}`
     if (conveyorPlacementBlocked(connectedPath, floorId, state.objects, fromObject?.id ?? null, toObject?.id ?? null)) {
-      set({ toasts: addToast(state, { title: '传送带无法放置', description: '路径与已有建筑物或传送带占用同一网格。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '传送带无法放置', description: '路径与已有建筑物或传送带占用同一网格', tone: 'warning' }) })
       return ''
     }
     const minX = Math.min(...connectedPath.map((point) => point.x))
@@ -2736,25 +2736,25 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const lowerFloor = state.floors.find((floor) => floor.id === lowerFloorId)
     const upperFloor = state.floors.find((floor) => floor.id === upperFloorId)
     if (!lowerFloor || !upperFloor || upperFloor.level !== lowerFloor.level + 1) {
-      set({ toasts: addToast(state, { title: '无法创建跨层传送带', description: '跨层传送带必须连接相邻的上下楼层。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '无法创建跨层传送带', description: '跨层传送带必须连接相邻的上下楼层', tone: 'warning' }) })
       return ''
     }
     const connectedObject = state.objects.find((object) => object.id === connectedObjectId)
     if (connectedObject?.kind === 'shelf') {
-      set({ toasts: addToast(state, { title: '货架不连接传送带', description: '跨层传送带也不能吸附到货架。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '货架不连接传送带', description: '跨层传送带也不能吸附到货架', tone: 'warning' }) })
       return ''
     }
     if (connectedObject?.config.kind === 'conveyor') {
       const occupied = direction === 'up' ? connectedObject.config.toObjectId : connectedObject.config.fromObjectId
       if (occupied) {
-        set({ toasts: addToast(state, { title: '吸附端已占用', description: '所选传送带端头已经连接其他线路。', tone: 'warning' }) })
+        set({ toasts: addToast(state, { title: '吸附端已占用', description: '所选传送带端头已经连接其他线路', tone: 'warning' }) })
         return ''
       }
     }
     if (connectedObject && supportsTripleConveyorPorts(connectedObject) && connectedPortIndex != null) {
       const role = direction === 'up' ? 'output' : 'input'
       if (isPortOccupied(state.objects, connectedObject.id, role, connectedPortIndex)) {
-        set({ toasts: addToast(state, { title: '设施端口已占用', description: '请选择另一个空闲端口。', tone: 'warning' }) })
+        set({ toasts: addToast(state, { title: '设施端口已占用', description: '请选择另一个空闲端口', tone: 'warning' }) })
         return ''
       }
     }
@@ -2767,13 +2767,13 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const horizontalRunM = polylineLength(path)
     const expectedRunM = inclineHorizontalRun(riseM)
     if (Math.abs(horizontalRunM - expectedRunM) > 0.01) {
-      set({ toasts: addToast(state, { title: '跨层传送带坡度无效', description: `高差 ${riseM.toFixed(1)}m 需要 ${expectedRunM.toFixed(1)}m 水平投影。`, tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '跨层传送带坡度无效', description: `高差 ${riseM.toFixed(1)}m 需要 ${expectedRunM.toFixed(1)}m 水平投影`, tone: 'warning' }) })
       return ''
     }
     const blockedOnLower = conveyorPlacementBlocked(path, lowerFloorId, state.objects, fromObjectId, toObjectId)
     const blockedOnUpper = conveyorPlacementBlocked(path, upperFloorId, state.objects, fromObjectId, toObjectId)
     if (blockedOnLower || blockedOnUpper) {
-      set({ toasts: addToast(state, { title: '跨层传送带无法放置', description: '斜坡投影与上层或下层的已有建筑/线路冲突。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '跨层传送带无法放置', description: '斜坡投影与上层或下层的已有建筑/线路冲突', tone: 'warning' }) })
       return ''
     }
     const sequence = state.objects.filter((object) => object.config.kind === 'conveyor' && object.config.conveyorType === 'incline').length + 1
@@ -2856,7 +2856,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       objects,
       simulation: { ...state.simulation, transitItems: state.simulation.transitItems.filter((item) => item.conveyorObjectId !== id) },
       saveStatus: 'dirty',
-      toasts: addToast(state, { title: '运输方向已反转', description: '为避免端口语义倒置，原有两端连接已解除，请从新的输出端继续拉线。', tone: 'info' }),
+      toasts: addToast(state, { title: '运输方向已反转', description: '为避免端口语义倒置，原有两端连接已解除，请从新的输出端继续拉线', tone: 'info' }),
     })
     return true
   },
@@ -2866,27 +2866,27 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const fromObject = state.objects.find((object) => object.id === fromObjectId && object.kind !== 'conveyor')
     const toObject = state.objects.find((object) => object.id === toObjectId && object.kind !== 'conveyor')
     if (!fromObject || !toObject || fromObject.id === toObject.id) {
-      set({ toasts: addToast(state, { title: '无法创建传送带连接', description: '请选择两个不同的固定设施。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '无法创建传送带连接', description: '请选择两个不同的固定设施', tone: 'warning' }) })
       return ''
     }
     if (fromObject.kind === 'shelf' || toObject.kind === 'shelf') {
-      set({ toasts: addToast(state, { title: '货架不连接传送带', description: '货架没有出货口或入货口，请改为连接货物仓库或机器。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '货架不连接传送带', description: '货架没有出货口或入货口，请改为连接货物仓库或机器', tone: 'warning' }) })
       return ''
     }
     if (fromObject.floorId !== toObject.floorId) {
-      set({ toasts: addToast(state, { title: '设施位于不同楼层', description: '请使用跨层传送带连接相邻楼层，再从其端头继续拉线。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '设施位于不同楼层', description: '请使用跨层传送带连接相邻楼层，再从其端头继续拉线', tone: 'warning' }) })
       return ''
     }
     const fromPortIndex = supportsTripleConveyorPorts(fromObject) ? firstAvailablePort(state.objects, fromObject.id, 'output') : null
     const toPortIndex = supportsTripleConveyorPorts(toObject) ? firstAvailablePort(state.objects, toObject.id, 'input') : null
     if ((supportsTripleConveyorPorts(fromObject) && fromPortIndex == null) || (supportsTripleConveyorPorts(toObject) && toPortIndex == null)) {
-      set({ toasts: addToast(state, { title: '没有空闲端口', description: '设施的三个对应端口均已连接传送带。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '没有空闲端口', description: '设施的三个对应端口均已连接传送带', tone: 'warning' }) })
       return ''
     }
     const id = createId('connection-conveyor')
     const path = connectionPathFor(fromObject, toObject, fromPortIndex ?? 1, toPortIndex ?? 1)
     if (conveyorPlacementBlocked(path, fromObject.floorId, state.objects, fromObject.id, toObject.id)) {
-      set({ toasts: addToast(state, { title: '无法创建传送带连接', description: '自动路径与已有建筑物或传送带重叠。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '无法创建传送带连接', description: '自动路径与已有建筑物或传送带重叠', tone: 'warning' }) })
       return ''
     }
     const connection: FactoryObject = {
@@ -2928,7 +2928,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const x = Math.round(position.x / state.factory.gridSizeM) * state.factory.gridSizeM
     const z = Math.round(position.z / state.factory.gridSizeM) * state.factory.gridSizeM
     if (!canFitAt(object, x, z, state.factory, state.objects)) {
-      set({ toasts: addToast(state, { title: '移动被阻止', description: '目标网格已被占用或超出边界。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '移动被阻止', description: '目标网格已被占用或超出边界', tone: 'warning' }) })
       return false
     }
     const candidateObjects = state.objects.map((candidate) =>
@@ -2949,7 +2949,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
         conveyor.id,
       ))
     if (connectionBlocked) {
-      set({ toasts: addToast(state, { title: '移动被阻止', description: '移动后的传送带会与其他建筑或线路发生冲突。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '移动被阻止', description: '移动后的传送带会与其他建筑或线路发生冲突', tone: 'warning' }) })
       return false
     }
     const simulation = deepClone(state.simulation)
@@ -2992,7 +2992,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const nextFootprint = { width: target.footprint.depth, depth: target.footprint.width }
     const rotatedCandidate = { ...target, footprint: nextFootprint }
     if (!canFitAt(rotatedCandidate, target.transform.x, target.transform.z, state.factory, state.objects)) {
-      set({ toasts: addToast(state, { title: '旋转被阻止', description: '旋转后的设施会超出边界或与其他设施重叠。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '旋转被阻止', description: '旋转后的设施会超出边界或与其他设施重叠', tone: 'warning' }) })
       return
     }
     let objects = state.objects.map((object) => {
@@ -3202,8 +3202,8 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const duplicateCode = state.items.some((candidate) => candidate.id !== item.id && candidate.code.trim().toLowerCase() === code.toLowerCase())
     if (!item.id || !name || !code || !runtimeModel || !Number.isFinite(item.massKg) || item.massKg < 0 || !Number.isSafeInteger(maxStackSize) || maxStackSize < 1 || duplicateCode) {
       const descriptionText = duplicateCode
-        ? `物品编码 ${code || '（空）'} 已被其他物品使用。`
-        : '请填写名称和唯一编码，选择有效模型，并提供非负质量与正整数最大堆叠数。'
+        ? `物品编码 ${code || '（空）'} 已被其他物品使用`
+        : '请填写名称和唯一编码，选择有效模型，并提供非负质量与正整数最大堆叠数'
       set({ toasts: addToast(state, { title: '物品无法保存', description: descriptionText, tone: 'warning' }) })
       return false
     }
@@ -3234,7 +3234,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
   removeItem: (id) => {
     const state = get()
     if (isReferencedItem(state, id)) {
-      set({ toasts: addToast(state, { title: '无法删除物品', description: `请先解除：${itemReferenceReasons(state, id).join('、')}。`, tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '无法删除物品', description: `请先解除：${itemReferenceReasons(state, id).join('、')}`, tone: 'warning' }) })
       return false
     }
     const removed = state.items.find((item) => item.id === id)
@@ -3257,7 +3257,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       || uniqueInputs.size !== recipe.inputs.length || uniqueOutputs.size !== recipe.outputs.length
       || !allLines.every((line) => knownItemIds.has(line.itemId) && Number.isFinite(line.quantity) && line.quantity >= 1)
       || !Number.isFinite(recipe.processingTimeSec) || recipe.processingTimeSec <= 0) {
-      set({ toasts: addToast(state, { title: '配方无法保存', description: '配方必须包含 1–3 种不重复且真实存在的原料和产物，并填写有效数量与处理时间。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '配方无法保存', description: '配方必须包含 1–3 种不重复且真实存在的原料和产物，并填写有效数量与处理时间', tone: 'warning' }) })
       return
     }
     const exists = state.recipes.some((candidate) => candidate.id === recipe.id)
@@ -3282,7 +3282,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const state = get()
     const isBound = state.objects.some((object) => object.config.kind === 'machine' && object.config.recipeId === id)
     if (isBound) {
-      set({ toasts: addToast(state, { title: '无法删除配方', description: '请先从机器上解除该配方。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '无法删除配方', description: '请先从机器上解除该配方', tone: 'warning' }) })
       return false
     }
     set({ recipes: state.recipes.filter((recipe) => recipe.id !== id), saveStatus: 'dirty' })
@@ -3303,7 +3303,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       && getDroneProgram(object)?.enabled
       && !droneConfigurationError(getDroneProgram(object)!, state.objects, state.items))
     if (Object.keys(state.simulation.machineRuntime).length === 0 && !hasWarehouseFlow && !hasAgvFlow && !hasDroneFlow) {
-      set({ toasts: addToast(state, { title: '还没有可运行的物流或生产链', description: '请先连接货物仓库、绑定机器配方，或为 AGV/无人机启用完整运输程序。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '还没有可运行的物流或生产链', description: '请先连接货物仓库、绑定机器配方，或为 AGV/无人机启用完整运输程序', tone: 'warning' }) })
       return
     }
     const simulation = deepClone(state.simulation)
@@ -3347,7 +3347,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       metricSeries: [],
       activities: [],
       saveStatus: 'dirty',
-      toasts: addToast(state, { title: '仿真已重置', description: '物料、机器缓存和指标已恢复到初始状态。', tone: 'info' }),
+      toasts: addToast(state, { title: '仿真已重置', description: '物料、机器缓存和指标已恢复到初始状态', tone: 'info' }),
     })
   },
 
@@ -3376,7 +3376,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     const record = state.inventory.find((candidate) => candidate.id === recordId)
     if (!record || !Number.isFinite(delta)) return false
     if (record.infiniteSupply) {
-      set({ toasts: addToast(state, { title: '请先取消无限供应', description: '无限供应启用时保留实际库存但不允许手动修改数量。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '请先取消无限供应', description: '无限供应启用时保留实际库存但不允许手动修改数量', tone: 'warning' }) })
       return false
     }
     const nextQuantity = record.quantity + Math.trunc(delta)
@@ -3389,7 +3389,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
         + nextQuantity + reservedInboundCapacity(record)
       : nextQuantity
     if (nextQuantity < reservedOutboundQuantity(record) || !Number.isSafeInteger(nextQuantity) || nextQuantity > record.capacity || (warehouse?.kind === 'rack' && aggregateAfter > warehouseCapacity(warehouse))) {
-      set({ toasts: addToast(state, { title: '库存调整失败', description: '数量不能低于已预约装运量、成为非安全整数或超过该设施容量。', tone: 'warning' }) })
+      set({ toasts: addToast(state, { title: '库存调整失败', description: '数量不能低于已预约装运量、成为非安全整数或超过该设施容量', tone: 'warning' }) })
       return false
     }
     const inventory = state.inventory.map((candidate) => candidate.id === recordId
@@ -3417,8 +3417,8 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       toasts: addToast(state, {
         title: enabled ? '已启用无限供应' : '已恢复有限库存',
         description: enabled
-          ? '该物品可持续从本仓储设施出货，实际库存数量不会被扣减。'
-          : '后续出货将重新扣减该物品的实际库存。',
+          ? '该物品可持续从本仓储设施出货，实际库存数量不会被扣减'
+          : '后续出货将重新扣减该物品的实际库存',
         tone: enabled ? 'success' : 'info',
       }),
     })
@@ -3439,7 +3439,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       set({ saveStatus: 'error', toasts: addToast(state, { title: '保存失败', description: result.error, tone: 'error' }) })
       return false
     }
-    set({ saveStatus: 'saved', lastSavedAt: result.value, toasts: addToast(state, { title: '工厂已保存', description: '布局、配方与当前仿真状态已同步；断网时自动保留本地副本。', tone: 'success' }) })
+    set({ saveStatus: 'saved', lastSavedAt: result.value, toasts: addToast(state, { title: '工厂已保存', description: '布局、配方与当前仿真状态已同步；断网时自动保留本地副本', tone: 'success' }) })
     return true
   },
 
@@ -3485,8 +3485,8 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
           ...capability,
           status: 'available',
           enabled: true,
-          description: '支持可视化任务配置、库存触发、A* 最短路、动态避障和多车协调运输。',
-          auditNote: '导航、安全包络、载荷与任务状态来自独立业务数据；Cels vendor 外观仍保持视觉待派生审计状态。',
+          description: '支持可视化任务配置、库存触发、A* 最短路、动态避障和多车协调运输',
+          auditNote: '导航、安全包络、载荷与任务状态来自独立业务数据；Cels vendor 外观仍保持视觉待派生审计状态',
           features: ['A* 最短路径', '库存触发运输', '动态避障与通行权协调'],
         }
       : capability)

@@ -15,7 +15,7 @@ export function SimulationPage() {
   return (
     <div className="page">
       <header className="page-heading">
-        <div><span className="eyebrow">DETERMINISTIC SIMULATION / OPERATIONS</span><h1>生产仿真监控</h1><p>本地模拟时钟驱动物料消耗、设备处理、输送与成品入库；刷新后可从已保存状态继续。</p></div>
+        <div><span className="eyebrow">DETERMINISTIC SIMULATION / OPERATIONS</span><h1>生产仿真监控</h1><p>本地模拟时钟驱动物料消耗、设备处理、输送与成品入库；刷新后可从已保存状态继续</p></div>
         <div className="page-heading__actions">
           <StatusBadge tone={running ? 'success' : 'warning'}>{running ? '仿真运行中' : simulation.status === 'paused' ? '仿真已暂停' : '等待启动'}</StatusBadge>
           <button className="button button--primary" onClick={running ? pauseSimulation : playSimulation}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? '暂停' : '运行'}</button>
@@ -67,7 +67,7 @@ export function SimulationPage() {
           <ol className="activity-list activity-list--dense">
             {activities.slice(0, 7).map((event) => <li key={event.id}><span className={`activity-list__icon activity-list__icon--${event.tone}`}><Activity size={13} /></span><div><strong>{event.title}</strong><small>{formatDuration(event.elapsedSimSec)} · {event.description}</small></div></li>)}
           </ol>
-          {!activities.length && <div className="signal-card"><AlertTriangle size={18} /><div><strong>尚无运行事件</strong><p>启动仿真后，这里会显示真实的处理与运输记录。</p></div></div>}
+          {!activities.length && <div className="signal-card"><AlertTriangle size={18} /><div><strong>尚无运行事件</strong><p>启动仿真后，这里会显示真实的处理与运输记录</p></div></div>}
         </Panel>
       </div>
     </div>

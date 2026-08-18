@@ -109,27 +109,27 @@ const loadLocal = (): RepositoryResult<PersistedForgeState | null> => {
   if (!storage) return { ok: true, value: null }
   try {
     const key = scopedKey(FACTORY_STORAGE_KEY)
-    if (!key) return { ok: false, error: '请先登录，再读取工厂存档。' }
+    if (!key) return { ok: false, error: '请先登录，再读取工厂存档' }
     const raw = storage.getItem(key)
     if (!raw) return { ok: true, value: null }
     const parsed: unknown = JSON.parse(raw)
-    if (!isPersistedState(parsed)) return { ok: false, error: '本地工厂数据版本无法识别，已保留原数据供审查。' }
+    if (!isPersistedState(parsed)) return { ok: false, error: '本地工厂数据版本无法识别，已保留原数据供审查' }
     return { ok: true, value: clone(parsed) }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? `读取本地工厂失败：${error.message}` : '读取本地工厂失败。' }
+    return { ok: false, error: error instanceof Error ? `读取本地工厂失败：${error.message}` : '读取本地工厂失败' }
   }
 }
 
 const saveLocal = (snapshot: PersistedForgeState): RepositoryResult<string> => {
   const storage = getStorage()
-  if (!storage) return { ok: false, error: '当前环境不支持本地持久化。' }
+  if (!storage) return { ok: false, error: '当前环境不支持本地持久化' }
   try {
     const key = scopedKey(FACTORY_STORAGE_KEY)
-    if (!key) return { ok: false, error: '请先登录，再保存工厂。' }
+    if (!key) return { ok: false, error: '请先登录，再保存工厂' }
     storage.setItem(key, JSON.stringify(snapshot))
     return { ok: true, value: snapshot.savedAt }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? `保存工厂失败：${error.message}` : '保存工厂失败。' }
+    return { ok: false, error: error instanceof Error ? `保存工厂失败：${error.message}` : '保存工厂失败' }
   }
 }
 
@@ -320,7 +320,7 @@ export const factoryRepository = {
       return { ok: true, value: snapshot }
     } catch (error) {
       if (error instanceof ApiError && error.unavailable) return loadLocal()
-      return { ok: false, error: error instanceof Error ? `读取后端工厂失败：${error.message}` : '读取后端工厂失败。' }
+      return { ok: false, error: error instanceof Error ? `读取后端工厂失败：${error.message}` : '读取后端工厂失败' }
     }
   },
 
@@ -346,7 +346,7 @@ export const factoryRepository = {
       return { ok: true, value: snapshot.savedAt }
     } catch (error) {
       if (error instanceof ApiError && error.unavailable) return saveLocal(snapshot)
-      return { ok: false, error: error instanceof Error ? `保存到后端失败：${error.message}` : '保存到后端失败。' }
+      return { ok: false, error: error instanceof Error ? `保存到后端失败：${error.message}` : '保存到后端失败' }
     }
   },
 
@@ -358,7 +358,7 @@ export const factoryRepository = {
       if (key) storage.removeItem(key)
       return { ok: true, value: null }
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? `清理本地工厂失败：${error.message}` : '清理本地工厂失败。' }
+      return { ok: false, error: error instanceof Error ? `清理本地工厂失败：${error.message}` : '清理本地工厂失败' }
     }
   },
 

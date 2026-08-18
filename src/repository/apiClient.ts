@@ -38,7 +38,7 @@ const parseError = async (response: Response): Promise<string> => {
   } catch {
     // The server may return an empty body during shutdown.
   }
-  return `请求失败（${response.status}）。`
+  return `请求失败（${response.status}）`
 }
 
 const isUnavailableStatus = (status: number): boolean => status === 502 || status === 503 || status === 504
@@ -74,7 +74,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retry 
   try {
     response = await fetch(path, { ...init, headers })
   } catch (error) {
-    throw new ApiError(error instanceof Error ? error.message : '后端暂时不可用。', null, true)
+    throw new ApiError(error instanceof Error ? error.message : '后端暂时不可用', null, true)
   }
 
   if (response.status === 401 && retry && path !== '/api/auth/refresh' && await refresh()) {

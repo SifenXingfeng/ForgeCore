@@ -7,10 +7,10 @@ interface CatalogModel { id: string; nameZh: string; category: string; previewPa
 interface CoreCatalog { modelCount: number; models: CatalogModel[] }
 
 const vendorAssets = [
-  { id: 'kenney', name: 'Kenney Factory Kit 3.0', scope: '143 个轻量工厂 GLB', license: 'CC0 1.0', tone: 'success' as const, status: '视觉可用', note: '保留 GLB format 与 Textures 的原始相对目录关系。', path: 'assets/3d/vendor/kenney-factory-kit-3.0/' },
-  { id: 'warehouse', name: 'Low-poly Warehouse Kit', scope: '开放式大货架、容器与仓库原件', license: 'CC0 1.0', tone: 'success' as const, status: '视觉可用', note: 'mastjie rack.glb 用于独立货架视觉并组合 Kenney 货物陈列；货物仓库仍使用 Kenney 候选 F。', path: 'assets/3d/vendor/mastjie-low-poly-warehouse-kit/' },
-  { id: 'agv', name: 'Industrial AGV Trolley', scope: '3.24 MB · 73,645 tris', license: 'CC BY 4.0', tone: 'warning' as const, status: '业务可用 · 视觉待派生', note: 'Cels 主体以 2× 视觉尺度展示；A*、安全包络、库存与调度来自独立业务层，不将 vendor 网格标记为 derived-ready。', path: 'assets/3d/vendor/cels-industrial-agv-trolley/' },
-  { id: 'drone', name: 'Futuristic Delivery Drone', scope: '6.39 MB · 10 张内嵌纹理', license: 'CC BY 4.0', tone: 'warning' as const, status: '业务可用 · 视觉待派生', note: 'Count Infinity 主体已作为单实例视觉层接入；26 邻域三维 A*、载荷、库存与多机协调来自独立业务层，不将 vendor 原件标记为 derived-ready。', path: 'assets/3d/vendor/count-infinity-futuristic-delivery-drone/' },
+  { id: 'kenney', name: 'Kenney Factory Kit 3.0', scope: '143 个轻量工厂 GLB', license: 'CC0 1.0', tone: 'success' as const, status: '视觉可用', note: '保留 GLB format 与 Textures 的原始相对目录关系', path: 'assets/3d/vendor/kenney-factory-kit-3.0/' },
+  { id: 'warehouse', name: 'Low-poly Warehouse Kit', scope: '开放式大货架、容器与仓库原件', license: 'CC0 1.0', tone: 'success' as const, status: '视觉可用', note: 'mastjie rack.glb 用于独立货架视觉并组合 Kenney 货物陈列；货物仓库仍使用 Kenney 候选 F', path: 'assets/3d/vendor/mastjie-low-poly-warehouse-kit/' },
+  { id: 'agv', name: 'Industrial AGV Trolley', scope: '3.24 MB · 73,645 tris', license: 'CC BY 4.0', tone: 'warning' as const, status: '业务可用 · 视觉待派生', note: 'Cels 主体以 2× 视觉尺度展示；A*、安全包络、库存与调度来自独立业务层，不将 vendor 网格标记为 derived-ready', path: 'assets/3d/vendor/cels-industrial-agv-trolley/' },
+  { id: 'drone', name: 'Futuristic Delivery Drone', scope: '6.39 MB · 10 张内嵌纹理', license: 'CC BY 4.0', tone: 'warning' as const, status: '业务可用 · 视觉待派生', note: 'Count Infinity 主体已作为单实例视觉层接入；26 邻域三维 A*、载荷、库存与多机协调来自独立业务层，不将 vendor 原件标记为 derived-ready', path: 'assets/3d/vendor/count-infinity-futuristic-delivery-drone/' },
 ]
 
 export function AssetsPage() {
@@ -20,7 +20,7 @@ export function AssetsPage() {
   const samples = catalog?.models.filter((_, index) => index % 7 === 0).slice(0, 5) ?? []
   return (
     <div className="page">
-      <header className="page-heading"><div><span className="eyebrow">3D ASSET GOVERNANCE / RUNTIME READINESS</span><h1>三维资产中心</h1><p>统一查看项目原创模型、第三方原件、许可边界与运行时适用状态。资产入库不等于仿真语义就绪。</p></div><StatusBadge tone="success"><ShieldCheck size={13} />审计规则已接入</StatusBadge></header>
+      <header className="page-heading"><div><span className="eyebrow">3D ASSET GOVERNANCE / RUNTIME READINESS</span><h1>三维资产中心</h1><p>统一查看项目原创模型、第三方原件、许可边界与运行时适用状态。资产入库不等于仿真语义就绪</p></div><StatusBadge tone="success"><ShieldCheck size={13} />审计规则已接入</StatusBadge></header>
 
       <div className="asset-summary">
         <article><Boxes /><span><strong>{catalog?.modelCount ?? '—'}</strong>核心默认模型</span><StatusBadge tone="success">GLB-only</StatusBadge></article>

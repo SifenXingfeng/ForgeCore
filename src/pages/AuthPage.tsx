@@ -49,7 +49,7 @@ export function AuthPage({ onAuthenticated }: { onAuthenticated: (user: AuthUser
     event.preventDefault()
     setError(null)
     if (mode === 'register' && password !== confirmPassword) {
-      setError('两次输入的密码不一致。')
+      setError('两次输入的密码不一致')
       return
     }
     setSubmitting(true)
@@ -116,7 +116,7 @@ export function AuthPage({ onAuthenticated }: { onAuthenticated: (user: AuthUser
             <span>数字工厂平台 2026</span>
           </motion.div>
           <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8, duration: 0.8, ease }}>
-            设计工厂。<br />运行未来。
+            设计工厂<br />运行未来
           </motion.h1>
           <motion.div className="landing-hero-actions" initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1, duration: 0.8, ease }}>
             <button className="landing-hero-button landing-hero-button--primary" type="button" onClick={() => switchMode('login', true)}>进入工作区<ArrowRight size={15} /></button>

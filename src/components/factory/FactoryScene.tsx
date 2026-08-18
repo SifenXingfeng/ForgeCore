@@ -320,7 +320,7 @@ function WebGlFallback() {
       }}
     >
       <strong style={{ color: '#6c5700', fontSize: 15 }}>无法启动三维视图</strong>
-      <span style={{ color: '#6f736f', marginTop: 6 }}>请开启浏览器 WebGL 硬件加速，或使用设备列表继续操作。</span>
+      <span style={{ color: '#6f736f', marginTop: 6 }}>请开启浏览器 WebGL 硬件加速，或使用设备列表继续操作</span>
     </div>
   )
 }
@@ -419,7 +419,7 @@ export const FactoryScene = forwardRef<FactorySceneHandle, FactorySceneProps>(fu
       }}
     >
       <span id="forgecore-scene-help" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-        拖动空白区域旋转视角，滚轮缩放，点击建筑可选中；按住建筑并拖动可沿网格调整位置，冲突或越界时不会提交移动。
+        拖动空白区域旋转视角，滚轮缩放，点击建筑可选中；按住建筑并拖动可沿网格调整位置，冲突或越界时不会提交移动
       </span>
       {contextLost ? (
         <WebGlFallback />

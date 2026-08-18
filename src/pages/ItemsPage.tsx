@@ -86,7 +86,7 @@ export function ItemsPage() {
   return (
     <div className="page">
       <header className="page-heading">
-        <div><span className="eyebrow">ITEM & MODEL REGISTRY</span><h1>物品与模型库</h1><p>以 36 个 ForgeCore 原创参数化模型定义原料、半成品和产品。业务属性与视觉参数保持分离。</p></div>
+        <div><span className="eyebrow">ITEM & MODEL REGISTRY</span><h1>物品与模型库</h1><p>以 36 个 ForgeCore 原创参数化模型定义原料、半成品和产品。业务属性与视觉参数保持分离</p></div>
         <button className="button button--primary" disabled={!catalog} onClick={() => setItemEditor({ mode: 'create', initialModelId: selected?.id })}><Plus size={16} />创建物品</button>
       </header>
       <BusinessItemLibrary
@@ -140,7 +140,7 @@ export function ItemsPage() {
         </main>
         <aside className="model-inspector panel">
           <div className="panel__body">
-            {selected ? <ModelInspector model={selected} onUse={() => setItemEditor({ mode: 'create', initialModelId: selected.id })} /> : <div className="inspector-placeholder"><SlidersHorizontal /><h3>选择一个模型</h3><p>查看参数 schema、几何预算与运行时契约。</p></div>}
+            {selected ? <ModelInspector model={selected} onUse={() => setItemEditor({ mode: 'create', initialModelId: selected.id })} /> : <div className="inspector-placeholder"><SlidersHorizontal /><h3>选择一个模型</h3><p>查看参数 schema、几何预算与运行时契约</p></div>}
           </div>
         </aside>
       </div>
@@ -268,10 +268,10 @@ function ItemEditorModal({ models, initialModel, initialItem, onClose, onSave }:
             <label>最大堆叠数<input type="number" min={1} step={1} value={maxStackSize} onChange={(event) => setMaxStackSize(Number(event.target.value))} /></label>
             <label className="item-builder__description">物品描述<textarea value={description} rows={3} onChange={(event) => setDescription(event.target.value)} placeholder="说明该物品的业务用途或工艺含义" /></label>
           </div>
-          <div className="form-note">质量与最大堆叠数属于 Item 业务属性，不会改变模型网格。右侧参数会实时重建预览，并作用于传送带和 AGV 车载物品实例。编辑会保留 Item ID 与现有引用。</div>
+          <div className="form-note">质量与最大堆叠数属于 Item 业务属性，不会改变模型网格。右侧参数会实时重建预览，并作用于传送带和 AGV 车载物品实例。编辑会保留 Item ID 与现有引用</div>
         </section>
         <section className="item-builder__parameters">
-          <header><div><span className="eyebrow">PARAMETRIC MODEL</span><h3>建模参数</h3><p>数值会按模型 schema 自动限幅；条件参数仅在依赖成立时生效。</p></div><button type="button" className="button button--secondary button--compact" onClick={() => { setParameters(modelDefaultParameters(selectedModel)); setParameterOverrides({}) }}><RotateCcw size={14} />恢复默认</button></header>
+          <header><div><span className="eyebrow">PARAMETRIC MODEL</span><h3>建模参数</h3><p>数值会按模型 schema 自动限幅；条件参数仅在依赖成立时生效</p></div><button type="button" className="button button--secondary button--compact" onClick={() => { setParameters(modelDefaultParameters(selectedModel)); setParameterOverrides({}) }}><RotateCcw size={14} />恢复默认</button></header>
           <ParameterSection title="结构与几何" entries={structuralParameters} parameters={parameters} onChange={updateParameter} />
           <ParameterSection title="材质与表现" entries={materialParameters} parameters={parameters} onChange={updateParameter} />
         </section>
@@ -286,7 +286,7 @@ function DeleteItemModal({ item, onClose, onConfirm }: { item: Item; onClose: ()
     <Modal title="删除业务物品" onClose={onClose}>
       <div className="item-delete-confirm">
         <Trash2 />
-        <div><strong>确认删除“{item.name}”？</strong><p>编码 {item.code} 及其无引用的零库存记录将一并删除。此操作不会删除核心模型资产。</p></div>
+        <div><strong>确认删除“{item.name}”？</strong><p>编码 {item.code} 及其无引用的零库存记录将一并删除。此操作不会删除核心模型资产</p></div>
       </div>
       <footer className="modal__footer"><button type="button" className="button button--secondary" onClick={onClose}>取消</button><button type="button" className="button button--danger" onClick={onConfirm}>确认删除</button></footer>
     </Modal>
@@ -320,7 +320,7 @@ function ParameterControl({ parameterKey, schema, value, parameters, onChange }:
     return <label className={`model-parameter-field ${active ? '' : 'is-disabled'}`}>{heading}<span className="parameter-color"><input type="color" disabled={!active} value={typeof value === 'string' ? value.slice(0, 7) : '#808080'} onChange={(event) => onChange(event.target.value)} /><input type="text" disabled={!active} value={String(value)} pattern="#[0-9a-fA-F]{6}" onChange={(event) => onChange(event.target.value)} /></span>{!active && <em>需满足：{dependency}</em>}</label>
   }
   if (schema.type === 'string') {
-    return <label className={`model-parameter-field ${active ? '' : 'is-disabled'}`}>{heading}<input disabled={!active} value={String(value ?? '')} placeholder={parameterKey === 'texture' ? '留空或输入程序纹理键' : ''} onChange={(event) => onChange(event.target.value)} />{parameterKey === 'texture' && <em>相同键生成并复用同一程序纹理，不读取网络地址。</em>}{!active && <em>需满足：{dependency}</em>}</label>
+    return <label className={`model-parameter-field ${active ? '' : 'is-disabled'}`}>{heading}<input disabled={!active} value={String(value ?? '')} placeholder={parameterKey === 'texture' ? '留空或输入程序纹理键' : ''} onChange={(event) => onChange(event.target.value)} />{parameterKey === 'texture' && <em>相同键生成并复用同一程序纹理，不读取网络地址</em>}{!active && <em>需满足：{dependency}</em>}</label>
   }
   const numericValue = Number(value)
   return (

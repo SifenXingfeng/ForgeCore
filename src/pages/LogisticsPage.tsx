@@ -14,7 +14,7 @@ export function LogisticsPage() {
   return (
     <div className="page">
       <header className="page-heading">
-        <div><span className="eyebrow">INTRALOGISTICS / CAPABILITY LAYERS</span><h1>物流与仓储</h1><p>传送带、1F AGV 与跨层无人机均已接入真实库存结算；无人机使用 26 邻域三维 A*、净空列安全下降和多机协调。</p></div>
+        <div><span className="eyebrow">INTRALOGISTICS / CAPABILITY LAYERS</span><h1>物流与仓储</h1><p>传送带、1F AGV 与跨层无人机均已接入真实库存结算；无人机使用 26 邻域三维 A*、净空列安全下降和多机协调</p></div>
         <StatusBadge tone="info">{conveyors.length} 条输送对象 · {activeAgvs} 台 AGV / {activeDrones} 架无人机运行</StatusBadge>
       </header>
 

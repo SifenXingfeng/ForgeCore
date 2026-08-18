@@ -126,12 +126,12 @@ export const authRepository = {
 
   async register(input: { displayName: string; email: string; password: string }): Promise<AuthResult> {
     const storage = getStorage()
-    if (!storage || typeof crypto === 'undefined' || !crypto.subtle) return { ok: false, error: '当前环境不支持本地账户存储。' }
+    if (!storage || typeof crypto === 'undefined' || !crypto.subtle) return { ok: false, error: '当前环境不支持本地账户存储' }
     const displayName = input.displayName.trim()
     const email = normalizeEmail(input.email)
-    if (displayName.length < 2) return { ok: false, error: '名称至少需要 2 个字符。' }
-    if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: '请输入有效的邮箱地址。' }
-    if (input.password.length < 8) return { ok: false, error: '密码至少需要 8 个字符。' }
+    if (displayName.length < 2) return { ok: false, error: '名称至少需要 2 个字符' }
+    if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: '请输入有效的邮箱地址' }
+    if (input.password.length < 8) return { ok: false, error: '密码至少需要 8 个字符' }
     try {
       const response = await apiRequest<ApiAuthResponse>('/api/auth/register', {
         method: 'POST',
@@ -142,11 +142,11 @@ export const authRepository = {
       saveRemoteSession(user)
       return { ok: true, user }
     } catch (error) {
-      if (!isUnavailable(error)) return { ok: false, error: error instanceof ApiError ? error.message : '注册失败。' }
+      if (!isUnavailable(error)) return { ok: false, error: error instanceof ApiError ? error.message : '注册失败' }
     }
 
     const users = readUsers(storage)
-    if (users.some((user) => user.email === email)) return { ok: false, error: '该邮箱已注册，请直接登录。' }
+    if (users.some((user) => user.email === email)) return { ok: false, error: '该邮箱已注册，请直接登录' }
     try {
       const salt = createSalt()
       const user: StoredAuthUser = {
@@ -161,13 +161,13 @@ export const authRepository = {
       saveSession(storage, user.id)
       return { ok: true, user: publicUser(user) }
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? `注册失败：${error.message}` : '注册失败。' }
+      return { ok: false, error: error instanceof Error ? `注册失败：${error.message}` : '注册失败' }
     }
   },
 
   async login(emailInput: string, password: string): Promise<AuthResult> {
     const storage = getStorage()
-    if (!storage || typeof crypto === 'undefined' || !crypto.subtle) return { ok: false, error: '当前环境不支持本地账户存储。' }
+    if (!storage || typeof crypto === 'undefined' || !crypto.subtle) return { ok: false, error: '当前环境不支持本地账户存储' }
     const email = normalizeEmail(emailInput)
     try {
       const response = await apiRequest<ApiAuthResponse>('/api/auth/login', {
@@ -179,18 +179,18 @@ export const authRepository = {
       saveRemoteSession(user)
       return { ok: true, user }
     } catch (error) {
-      if (!isUnavailable(error)) return { ok: false, error: error instanceof ApiError ? error.message : '登录失败。' }
+      if (!isUnavailable(error)) return { ok: false, error: error instanceof ApiError ? error.message : '登录失败' }
     }
 
     const user = readUsers(storage).find((entry) => entry.email === email)
     if (!user || await digest(user.salt, password) !== user.passwordHash) {
-      return { ok: false, error: '邮箱或密码不正确。' }
+      return { ok: false, error: '邮箱或密码不正确' }
     }
     try {
       saveSession(storage, user.id)
       return { ok: true, user: publicUser(user) }
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? `登录失败：${error.message}` : '登录失败。' }
+      return { ok: false, error: error instanceof Error ? `登录失败：${error.message}` : '登录失败' }
     }
   },
 
