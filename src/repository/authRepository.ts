@@ -1,5 +1,8 @@
+import { ApiError, apiRequest, clearApiTokens, getRefreshToken, setApiTokens } from './apiClient'
+
 export const AUTH_USERS_STORAGE_KEY = 'forgecore.auth.users.v1'
 export const AUTH_SESSION_STORAGE_KEY = 'forgecore.auth.session.v1'
+export const AUTH_REMOTE_SESSION_STORAGE_KEY = 'forgecore.auth.remote-session.v1'
 
 export interface AuthUser {
   id: string
@@ -67,8 +70,42 @@ const saveSession = (storage: Storage, userId: string) => {
   storage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify({ userId, signedInAt: new Date().toISOString() }))
 }
 
+interface ApiAuthResponse {
+  access_token: string
+  refresh_token: string
+  user: { id: string; username: string; display_name: string; email: string; created_at: string }
+}
+
+const remoteUser = (user: ApiAuthResponse['user']): AuthUser => ({
+  id: user.id,
+  displayName: user.display_name || user.username,
+  email: user.email,
+  createdAt: user.created_at,
+})
+
+const saveRemoteSession = (user: AuthUser) => {
+  getStorage()?.setItem(AUTH_REMOTE_SESSION_STORAGE_KEY, JSON.stringify(user))
+}
+
+const readRemoteSession = (): AuthUser | null => {
+  try {
+    const raw = getStorage()?.getItem(AUTH_REMOTE_SESSION_STORAGE_KEY)
+    if (!raw) return null
+    const user = JSON.parse(raw) as Partial<AuthUser>
+    return typeof user.id === 'string' && typeof user.email === 'string' && typeof user.displayName === 'string' && typeof user.createdAt === 'string'
+      ? user as AuthUser
+      : null
+  } catch {
+    return null
+  }
+}
+
+const isUnavailable = (error: unknown): boolean => error instanceof ApiError && error.unavailable
+
 export const authRepository = {
   session(): AuthUser | null {
+    const remote = readRemoteSession()
+    if (remote) return remote
     const storage = getStorage()
     if (!storage) return null
     try {
@@ -95,6 +132,19 @@ export const authRepository = {
     if (displayName.length < 2) return { ok: false, error: '名称至少需要 2 个字符。' }
     if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: '请输入有效的邮箱地址。' }
     if (input.password.length < 8) return { ok: false, error: '密码至少需要 8 个字符。' }
+    try {
+      const response = await apiRequest<ApiAuthResponse>('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ username: displayName, email, password: input.password }),
+      })
+      const user = remoteUser(response.user)
+      setApiTokens({ accessToken: response.access_token, refreshToken: response.refresh_token })
+      saveRemoteSession(user)
+      return { ok: true, user }
+    } catch (error) {
+      if (!isUnavailable(error)) return { ok: false, error: error instanceof ApiError ? error.message : '注册失败。' }
+    }
+
     const users = readUsers(storage)
     if (users.some((user) => user.email === email)) return { ok: false, error: '该邮箱已注册，请直接登录。' }
     try {
@@ -119,6 +169,19 @@ export const authRepository = {
     const storage = getStorage()
     if (!storage || typeof crypto === 'undefined' || !crypto.subtle) return { ok: false, error: '当前环境不支持本地账户存储。' }
     const email = normalizeEmail(emailInput)
+    try {
+      const response = await apiRequest<ApiAuthResponse>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
+      const user = remoteUser(response.user)
+      setApiTokens({ accessToken: response.access_token, refreshToken: response.refresh_token })
+      saveRemoteSession(user)
+      return { ok: true, user }
+    } catch (error) {
+      if (!isUnavailable(error)) return { ok: false, error: error instanceof ApiError ? error.message : '登录失败。' }
+    }
+
     const user = readUsers(storage).find((entry) => entry.email === email)
     if (!user || await digest(user.salt, password) !== user.passwordHash) {
       return { ok: false, error: '邮箱或密码不正确。' }
@@ -132,6 +195,12 @@ export const authRepository = {
   },
 
   logout(): void {
-    try { getStorage()?.removeItem(AUTH_SESSION_STORAGE_KEY) } catch { /* best effort */ }
+    const refreshToken = getRefreshToken()
+    if (refreshToken) void apiRequest('/api/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token: refreshToken }) }).catch(() => undefined)
+    clearApiTokens()
+    try {
+      getStorage()?.removeItem(AUTH_SESSION_STORAGE_KEY)
+      getStorage()?.removeItem(AUTH_REMOTE_SESSION_STORAGE_KEY)
+    } catch { /* best effort */ }
   },
 }

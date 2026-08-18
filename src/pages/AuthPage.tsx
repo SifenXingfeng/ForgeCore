@@ -51,13 +51,13 @@ export function AuthPage({ onAuthenticated }: { onAuthenticated: (user: AuthUser
           <li><Boxes /><span><strong>自定义生产流程</strong><small>物品、配方与机器由你定义</small></span><Check /></li>
           <li><Factory /><span><strong>真实模型优先</strong><small>已审计资产与清晰来源边界</small></span><Check /></li>
         </ul>
-        <small className="entry-hero__foot">INITIAL RELEASE · LOCAL WORKSPACE</small>
+        <small className="entry-hero__foot">SECURE ACCOUNT · CLOUD WORKSPACE</small>
       </section>
 
       <section className="auth-panel" aria-labelledby="auth-title">
         <div className="auth-panel__inner">
           <span className="eyebrow">WELCOME TO FORGECORE</span>
-          <h2 id="auth-title">{mode === 'login' ? '登录工作区' : '创建本地账户'}</h2>
+          <h2 id="auth-title">{mode === 'login' ? '登录工作区' : '创建 ForgeCore 账户'}</h2>
           <p>{mode === 'login' ? '继续管理属于你的工厂项目。' : '创建后将进入空白主菜单，不会注入演示存档。'}</p>
 
           <div className="auth-mode-switch" role="tablist" aria-label="账户操作">
@@ -74,7 +74,7 @@ export function AuthPage({ onAuthenticated }: { onAuthenticated: (user: AuthUser
             <button className="entry-primary-action" type="submit" disabled={submitting}>{submitting ? '正在处理…' : mode === 'login' ? '登录并进入' : '注册并进入'}<ArrowRight /></button>
           </form>
 
-          <p className="auth-local-note"><LockKeyhole />初版账户与存档只保存在当前浏览器。密码使用加盐摘要保存，不存储明文。</p>
+          <p className="auth-local-note"><LockKeyhole />账户与工厂数据由后端安全保存；服务暂时不可用时自动切换到当前浏览器的离线工作区。</p>
         </div>
       </section>
     </main>

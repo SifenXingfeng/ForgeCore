@@ -2477,8 +2477,10 @@ export interface ForgeStore extends ForgeProjectData {
   tickSimulation: (realDeltaSec: number) => void
   adjustInventory: (recordId: Id, delta: number) => boolean
   setInventoryInfiniteSupply: (recordId: Id, enabled: boolean) => boolean
-  saveFactory: () => boolean
-  restoreFactory: () => boolean
+  saveFactory: () => Promise<boolean>
+  restoreFactory: () => Promise<boolean>
+  applyRealtimeMetric: (sample: MetricSample) => void
+  applyRealtimeActivity: (event: ActivityEvent) => void
   clearWorkspace: () => void
   markDirty: () => void
   dismissToast: (id: Id) => void
@@ -3423,7 +3425,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     return true
   },
 
-  saveFactory: () => {
+  saveFactory: async () => {
     const state = get()
     set({ saveStatus: 'saving' })
     const savedAt = nowIso()
@@ -3432,18 +3434,18 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       persistenceSchemaVersion: 1,
       savedAt,
     }
-    const result = factoryRepository.save(snapshot)
+    const result = await factoryRepository.save(snapshot)
     if (!result.ok) {
       set({ saveStatus: 'error', toasts: addToast(state, { title: '保存失败', description: result.error, tone: 'error' }) })
       return false
     }
-    set({ saveStatus: 'saved', lastSavedAt: result.value, toasts: addToast(state, { title: '工厂已保存', description: '布局、配方与当前仿真状态已写入本地工作区。', tone: 'success' }) })
+    set({ saveStatus: 'saved', lastSavedAt: result.value, toasts: addToast(state, { title: '工厂已保存', description: '布局、配方与当前仿真状态已同步；断网时自动保留本地副本。', tone: 'success' }) })
     return true
   },
 
-  restoreFactory: () => {
+  restoreFactory: async () => {
     const state = get()
-    const result = factoryRepository.load()
+    const result = await factoryRepository.load()
     if (!result.ok) {
       set({ hydrated: true, saveStatus: 'error', toasts: addToast(state, { title: '恢复失败', description: result.error, tone: 'error' }) })
       return false
@@ -3491,6 +3493,27 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     set({ ...restored, selectedObjectId: restored.objects[0]?.id ?? null, hydrated: true, saveStatus: 'saved', lastSavedAt: savedAt })
     return true
   },
+
+  applyRealtimeMetric: (sample) => set((state) => {
+    const metricSeries = [...state.metricSeries.filter((entry) => entry.elapsedSimSec !== sample.elapsedSimSec), sample]
+      .sort((a, b) => a.elapsedSimSec - b.elapsedSimSec)
+      .slice(-MAX_METRIC_SAMPLES)
+    return {
+      metricSeries,
+      metrics: {
+        ...state.metrics,
+        currentThroughputPerMin: sample.throughputPerMin,
+        workInProgress: sample.workInProgress,
+        totalProduced: Math.max(state.metrics.totalProduced, sample.finishedGoods),
+      },
+    }
+  }),
+
+  applyRealtimeActivity: (event) => set((state) => ({
+    activities: [...state.activities.filter((entry) => entry.id !== event.id), event]
+      .sort((a, b) => a.elapsedSimSec - b.elapsedSimSec)
+      .slice(-MAX_ACTIVITY_EVENTS),
+  })),
 
   clearWorkspace: () => {
     const next = createEmptyProjectData()
