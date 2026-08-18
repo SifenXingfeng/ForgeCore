@@ -39,7 +39,7 @@ export function SimulationPage() {
       <div className="simulation-grid">
         <Panel title="实时吞吐趋势" eyebrow="THROUGHPUT / MIN" className="simulation-grid__wide" action={<StatusBadge tone="info">真实仿真序列</StatusBadge>}>
           <div className="chart-summary"><div><strong>{metrics.currentThroughputPerMin.toFixed(1)}</strong><span>件 / 分钟</span></div><span className="muted">最近 {Math.max(1, metricSeries.length)} 个采样点</span></div>
-          <Sparkline values={history.length > 1 ? history : [0, metrics.currentThroughputPerMin]} color="#35a77b" height={154} />
+          <Sparkline values={history.length > 1 ? history : [0, metrics.currentThroughputPerMin]} color="#111111" height={154} />
         </Panel>
 
         <Panel title="产线健康" eyebrow="FLOW HEALTH">

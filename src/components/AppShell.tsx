@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 import Sidebar, { type AppPage } from "./Sidebar";
 import Topbar, { type TopbarProps } from "./Topbar";
+
+const ease = [0.16, 1, 0.3, 1] as const;
 
 export interface AppShellProps {
   currentPage: AppPage;
@@ -22,9 +25,17 @@ export function AppShell({
       </a>
       <Topbar {...topbarProps} />
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
-      <main id="forgecore-main" className="fc-shell__main" tabIndex={-1}>
+      <motion.main
+        key={currentPage}
+        id="forgecore-main"
+        className="fc-shell__main"
+        tabIndex={-1}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease }}
+      >
         {children}
-      </main>
+      </motion.main>
     </div>
   );
 }

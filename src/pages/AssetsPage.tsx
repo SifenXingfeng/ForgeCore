@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Boxes, CheckCircle2, ExternalLink, FileCheck2, PackageOpen, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { Boxes, FileCheck2, PackageOpen, ShieldCheck } from 'lucide-react'
 import { ModelPreview } from '../components/factory/ModelPreview'
 import { Panel, StatusBadge } from '../components/ui'
 
@@ -30,14 +30,10 @@ export function AssetsPage() {
 
       <Panel title="ForgeCore 默认基础模型" eyebrow="FIRST-PARTY CORE / V1" action={<span className="path-label">assets/3d/core/items/v1/</span>}>
         <div className="core-model-strip">{samples.map((model) => <article key={model.id}><ModelPreview src={`/3d/core/items/v1/${model.previewPath}`} alt={model.nameZh} /><div><strong>{model.nameZh}</strong><small>{model.id}</small></div><span>{model.metrics.triangleCount} tris</span></article>)}</div>
-        <div className="asset-callout"><CheckCircle2 /><div><strong>运行时权威入口：catalog.json</strong><p>36 个稳定 modelId、参数 schema、预览路径、GLB 路径与指标均由同一目录维护；页面只按需加载资源。</p></div></div>
+        <div className="asset-callout"><FileCheck2 /><div><strong>运行时入口：catalog.json</strong></div></div>
       </Panel>
 
-      <section className="vendor-section"><div className="section-heading"><div><span className="eyebrow">VENDOR ASSETS</span><h2>第三方资产与边界</h2></div><span className="muted">原件保持原目录，不直接覆盖或改名</span></div><div className="vendor-grid">{vendorAssets.map((asset) => <article className="vendor-card" key={asset.id}><div className="vendor-card__top"><span className={`vendor-symbol vendor-symbol--${asset.id}`}>{asset.id === 'drone' ? 'DR' : asset.id === 'agv' ? 'AG' : asset.id === 'kenney' ? 'KF' : 'WH'}</span><StatusBadge tone={asset.tone}>{asset.status}</StatusBadge></div><h3>{asset.name}</h3><p>{asset.scope}</p><dl><div><dt>许可</dt><dd>{asset.license}</dd></div><div><dt>用途</dt><dd>{asset.note}</dd></div></dl><code>{asset.path}</code></article>)}</div></section>
-
-      <Panel title="资产使用门禁" eyebrow="AUDIT GATE">
-        <div className="asset-gates"><div><CheckCircle2 /><span><strong>Core</strong><p>可直接引用；模型参数与 Item 业务字段分离。</p></span></div><div><TriangleAlert /><span><strong>Vendor</strong><p>先核对许可、坐标、尺度、性能与语义，再决定是否制作 derived。</p></span></div><div><ExternalLink /><span><strong>Attribution</strong><p>CC BY 资产展示或分发时必须保留作者、原链接、许可链接及修改声明。</p></span></div></div>
-      </Panel>
+      <section className="vendor-section"><div className="section-heading"><div><span className="eyebrow">VENDOR ASSETS</span><h2>第三方资产</h2></div></div><div className="vendor-grid">{vendorAssets.map((asset) => <article className="vendor-card" key={asset.id}><div className="vendor-card__top"><span className={`vendor-symbol vendor-symbol--${asset.id}`}>{asset.id === 'drone' ? 'DR' : asset.id === 'agv' ? 'AG' : asset.id === 'kenney' ? 'KF' : 'WH'}</span><StatusBadge tone={asset.tone}>{asset.status}</StatusBadge></div><h3>{asset.name}</h3><p>{asset.scope}</p><dl><div><dt>许可</dt><dd>{asset.license}</dd></div></dl><code>{asset.path}</code></article>)}</div></section>
     </div>
   )
 }

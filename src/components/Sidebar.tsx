@@ -91,8 +91,6 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside className={`fc-sidebar ${className}`.trim()}>
-      <div className="fc-sidebar__section-label">工作区</div>
-
       <nav className="fc-sidebar__nav" aria-label="ForgeCore 主导航">
         <ul className="fc-sidebar__list">
           {APP_NAVIGATION.map((item) => {
@@ -121,14 +119,6 @@ export function Sidebar({
           })}
         </ul>
       </nav>
-
-      <div className="fc-sidebar__footer" aria-label="系统版本">
-        <span className="fc-sidebar__footer-mark" aria-hidden="true" />
-        <span>
-          <strong>INITIAL BUILD</strong>
-          <small>ForgeCore 0.1</small>
-        </span>
-      </div>
     </aside>
   );
 }

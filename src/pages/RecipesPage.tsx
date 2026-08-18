@@ -40,7 +40,7 @@ export function RecipesPage({ onNavigate }: { onNavigate: (page: AppPage) => voi
       {items.length === 0 ? (
         <div className="recipe-prerequisite" role="status">
           <Beaker />
-          <div><strong>配方需要引用实际物品</strong><p>当前工厂还是空物品库。先创建原料或产品，返回后即可立即建立配方。</p></div>
+          <div><strong>配方需要引用实际物品</strong></div>
           <button className="button button--primary" onClick={() => onNavigate('items')}>前往创建物品</button>
         </div>
       ) : null}
@@ -55,7 +55,7 @@ export function RecipesPage({ onNavigate }: { onNavigate: (page: AppPage) => voi
                 <StatusBadge tone={recipe.enabled ? 'success' : 'neutral'}>{recipe.enabled ? '已启用' : '停用'}</StatusBadge>
               </button>
             ))}
-            {recipes.length === 0 ? <p className="recipe-list__empty">还没有配方。创建物品后，从这里定义第一条生产关系。</p> : null}
+            {recipes.length === 0 ? <p className="recipe-list__empty">暂无配方</p> : null}
           </div>
         </Panel>
 

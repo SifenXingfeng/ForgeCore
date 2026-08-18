@@ -489,33 +489,6 @@ export const FactoryScene = forwardRef<FactorySceneHandle, FactorySceneProps>(fu
           </Suspense>
         </Canvas>
       )}
-      <div
-        aria-hidden="true"
-        style={{
-          background: simulationRunning ? '#4aa774' : '#e5ae14',
-          borderRadius: 99,
-          boxShadow: simulationRunning ? '0 0 13px rgba(74,167,116,.55)' : '0 0 9px rgba(229,174,20,.42)',
-          height: 6,
-          left: 14,
-          position: 'absolute',
-          top: 14,
-          width: 6,
-        }}
-      />
-      <div
-        style={{
-          color: '#555954',
-          font: '10px/1 Inter, "Microsoft YaHei", sans-serif',
-          left: 27,
-          letterSpacing: '.08em',
-          pointerEvents: 'none',
-          position: 'absolute',
-          textTransform: 'uppercase',
-          top: 12,
-        }}
-      >
-        {interactionLocked ? '建造模式' : simulationRunning ? '仿真运行' : '编辑视图'}
-      </div>
     </div>
   )
 })

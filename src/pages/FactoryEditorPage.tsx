@@ -748,7 +748,7 @@ export function FactoryEditorPage({ onNavigate }: { onNavigate: (page: AppPage) 
         />
 
         <aside className="floor-stack-panel" aria-label="楼层选择与新建">
-          <header><Layers /><span><strong>楼层</strong><small>当前网格：{activeFloor?.name ?? '未选择'}</small></span></header>
+          <header><Layers /><span><strong>楼层</strong></span></header>
           <div className="floor-stack-panel__list">
             {[...floors].sort((left, right) => right.level - left.level).map((floor) => {
               const floorObjectCount = objects.filter((object) => object.config.kind === 'conveyor'
@@ -775,17 +775,18 @@ export function FactoryEditorPage({ onNavigate }: { onNavigate: (page: AppPage) 
             })}
           </div>
           <section className="floor-stack-panel__visibility" aria-label="楼层显示设置">
-            <header><strong>显示设置</strong><small>网格始终仅显示当前层</small></header>
+            <header><strong>显示设置</strong></header>
             <div role="radiogroup" aria-label="多楼层对象显示方式">
               {floorVisibilityOptions.map((option) => (
                 <button
                   key={option.value}
                   role="radio"
                   aria-checked={floorVisibilityMode === option.value}
+                  aria-label={`${option.label}：${option.hint}`}
                   className={floorVisibilityMode === option.value ? 'is-active' : ''}
                   onClick={() => setFloorVisibilityMode(option.value)}
                 >
-                  <strong>{option.label}</strong><small>{option.hint}</small>
+                  <strong>{option.label}</strong>
                 </button>
               ))}
             </div>

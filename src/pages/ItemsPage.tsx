@@ -177,11 +177,11 @@ function BusinessItemLibrary({
   return (
     <section className="business-item-library panel" aria-label="已添加物品管理">
       <header>
-        <div><span className="eyebrow">BUSINESS ITEM MANAGEMENT</span><h2>已添加物品</h2><p>编辑业务字段或重新生成参数模型；引用中的物品受到删除保护。</p></div>
+        <div><span className="eyebrow">BUSINESS ITEM MANAGEMENT</span><h2>已添加物品</h2></div>
         <strong>{items.length}</strong>
       </header>
       {items.length === 0 ? (
-        <div className="business-item-library__empty"><PackageOpen /><div><strong>还没有业务物品</strong><span>从下方模型库选择基础模型，或直接使用右上角“创建物品”。</span></div></div>
+        <div className="business-item-library__empty"><PackageOpen /><div><strong>还没有业务物品</strong></div></div>
       ) : (
         <div className="business-item-grid">
           {items.map((item) => {
@@ -215,7 +215,7 @@ function BusinessItemLibrary({
 
 function ModelInspector({ model, onUse }: { model: ItemModelRecord; onUse: () => void }) {
   const parameters = Object.entries(model.parameters).filter(([name]) => !['texture', 'emission'].includes(name)).slice(0, 8)
-  return <><span className="eyebrow">MODEL DETAILS</span><h2>{model.nameZh}</h2><p className="muted">{model.description}</p><div className="inspector-preview"><ModelPreview src={`/3d/core/items/v1/${model.previewPath}`} alt={model.nameZh} /></div><dl className="detail-list"><div><dt>Model ID</dt><dd>{model.id}</dd></div><div><dt>参数等级</dt><dd>Level {model.parameterizationLevel}</dd></div><div><dt>三角形</dt><dd>{model.metrics.triangleCount}</dd></div><div><dt>格式</dt><dd>GLB 2.0</dd></div></dl><h3 className="section-title">可调参数</h3><div className="parameter-chips">{parameters.map(([name]) => <span key={name}>{parameterLabel(name)}</span>)}</div><button className="button button--primary button--full" onClick={onUse}>使用此模型创建物品</button></>
+  return <><span className="eyebrow">MODEL DETAILS</span><h2>{model.nameZh}</h2><div className="inspector-preview"><ModelPreview src={`/3d/core/items/v1/${model.previewPath}`} alt={model.nameZh} /></div><dl className="detail-list"><div><dt>Model ID</dt><dd>{model.id}</dd></div><div><dt>参数等级</dt><dd>Level {model.parameterizationLevel}</dd></div><div><dt>三角形</dt><dd>{model.metrics.triangleCount}</dd></div><div><dt>格式</dt><dd>GLB 2.0</dd></div></dl><h3 className="section-title">可调参数</h3><div className="parameter-chips">{parameters.map(([name]) => <span key={name}>{parameterLabel(name)}</span>)}</div><button className="button button--primary button--full" onClick={onUse}>使用此模型创建物品</button></>
 }
 
 function ItemEditorModal({ models, initialModel, initialItem, onClose, onSave }: { models: ItemModelRecord[]; initialModel?: string; initialItem?: Item; onClose: () => void; onSave: (item: Item) => void }) {

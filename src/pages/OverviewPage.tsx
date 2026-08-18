@@ -39,7 +39,7 @@ export function OverviewPage({ onNavigate }: { onNavigate: (page: AppPage) => vo
             <div><strong>{metrics.currentThroughputPerMin.toFixed(1)}</strong><span>件 / 分钟</span></div>
             <StatusBadge tone="success">数据已接入</StatusBadge>
           </div>
-          <Sparkline values={history.length > 1 ? history : [0, metrics.currentThroughputPerMin]} color="#2d9c73" height={112} />
+          <Sparkline values={history.length > 1 ? history : [0, metrics.currentThroughputPerMin]} color="#111111" height={112} />
           <div className="chart-axis"><span>-12 min</span><span>-8 min</span><span>-4 min</span><span>现在</span></div>
         </Panel>
 

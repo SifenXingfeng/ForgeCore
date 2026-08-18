@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 
 export function Panel({
   title,
-  eyebrow,
+  eyebrow: _eyebrow,
   action,
   children,
   className = '',
@@ -19,7 +19,6 @@ export function Panel({
       {(title || action) && (
         <header className="panel__header">
           <div>
-            {eyebrow && <span className="eyebrow">{eyebrow}</span>}
             {title && <h2>{title}</h2>}
           </div>
           {action && <div className="panel__action">{action}</div>}
@@ -66,7 +65,7 @@ export function MetricCard({
         {value}
         {unit && <small>{unit}</small>}
       </div>
-      {change && <span className="metric-card__change">{change}</span>}
+      {change && <span className="fc-sr-only">{change}</span>}
     </article>
   )
 }
@@ -88,7 +87,6 @@ export function Modal({ title, children, onClose, wide = false }: { title: strin
       <section className={`modal ${wide ? 'modal--wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
         <header className="modal__header">
           <div>
-            <span className="eyebrow">FORGECORE WORKSPACE</span>
             <h2>{title}</h2>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="关闭对话框"><X size={18} /></button>

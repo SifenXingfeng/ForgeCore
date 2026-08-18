@@ -2,7 +2,6 @@ import {
   Building2,
   CircleAlert,
   CircleCheck,
-  Factory,
   House,
   LoaderCircle,
   Pause,
@@ -50,21 +49,13 @@ export function Topbar({
   return (
     <header className={`fc-topbar ${className}`.trim()}>
       <div className="fc-topbar__brand" aria-label="ForgeCore">
-        <span className="fc-topbar__brand-mark" aria-hidden="true">
-          <Factory />
-        </span>
-        <span className="fc-topbar__brand-copy">
-          <strong>ForgeCore</strong>
-          <small>DIGITAL FACTORY</small>
-        </span>
+        <span className="fc-topbar__brand-mark" aria-hidden="true" />
+        <strong>ForgeCore</strong>
       </div>
 
       <div className="fc-topbar__context">
         <Building2 aria-hidden="true" />
-        <span className="fc-topbar__context-copy">
-          <small>当前工厂</small>
-          <strong title={factoryName}>{factoryName}</strong>
-        </span>
+        <strong title={factoryName}>{factoryName}</strong>
       </div>
 
       <div className="fc-topbar__states" aria-live="polite">
@@ -88,10 +79,10 @@ export function Topbar({
             type="button"
             className="fc-topbar__action"
             onClick={onOpenMainMenu}
+            aria-label="返回主菜单"
             title="返回主菜单"
           >
             <House aria-hidden="true" />
-            <span>主菜单</span>
           </button>
         )}
         {onOpenCommandPalette && (
@@ -102,8 +93,6 @@ export function Topbar({
             title="搜索与快捷命令"
           >
             <Search aria-hidden="true" />
-            <span>搜索</span>
-            <kbd>⌘ K</kbd>
           </button>
         )}
 
@@ -113,9 +102,9 @@ export function Topbar({
           onClick={onSave}
           disabled={!onSave || saveState === "saving"}
           title={onSave ? "保存当前工厂" : "保存操作尚未接入"}
+          aria-label="保存当前工厂"
         >
           <Save aria-hidden="true" />
-          <span>保存</span>
         </button>
 
         <button
@@ -137,7 +126,6 @@ export function Topbar({
           ) : (
             <Play aria-hidden="true" />
           )}
-          <span>{simRunning ? "暂停" : "运行"}</span>
         </button>
       </div>
     </header>
