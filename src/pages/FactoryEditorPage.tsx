@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
 import { Activity, ArrowDown, ArrowUp, Boxes, ChevronRight, Clock3, Construction, Cpu, Eye, Gauge, Grid3X3, Layers, MoveUpRight, PackageOpen, PanelRight, Pause, Play, Plus, RotateCcw, RotateCw, SunMedium, Trash2, Truck, Warehouse, X } from 'lucide-react'
-import { FactoryScene, type FactorySceneHandle, type PlacementPreview } from '../components/factory/FactoryScene'
+import { FactoryScene, type AgentSceneDiff, type FactorySceneHandle, type PlacementPreview } from '../components/factory/FactoryScene'
 import { INCLINE_REFERENCE_RUN_M, MACHINE_PORT_INDICES, alignPathToPorts, appendGridTrace, conveyorEndpointFloorId, inclineHorizontalRun, nearestConveyorPort, pathFromGridTrace, polylineLength, supportsTripleConveyorPorts, type ConveyorEndpointSnap, type GridPoint, type MachinePortIndex } from '../domain/conveyorPath'
 import { conveyorPlacementBlocked, facilityPlacementBlocked } from '../domain/placementCollision'
 import { useForgeStore } from '../store/useForgeStore'
+import { agentRepository, readAgentPatch, type AgentPatch } from '../repository/agentRepository'
 import { useShallow } from 'zustand/react/shallow'
 import type { AppPage } from '../components/Sidebar'
 import type { AgvProgram, ConveyorObjectConfig, FactoryObject, FactoryObjectKind, Floor, FloorVisibilityMode, GridTransform, InventoryRecord, Item, NewFactoryObject, RackObjectConfig, Recipe, SimulationSpeed, VehicleObjectConfig, WarehouseDispatchIntervalsSec } from '../types'
@@ -120,12 +121,28 @@ export function FactoryEditorPage({ onNavigate }: { onNavigate: (page: AppPage) 
   ))
   const [newFloorHeightM, setNewFloorHeightM] = useState(4.5)
   const [inclineDirection, setInclineDirection] = useState<'up' | 'down'>('up')
+  const [agentPatch, setAgentPatch] = useState<AgentPatch | null>(() => readAgentPatch(useForgeStore.getState().factory.id))
   const activeEntry = buildEntries.find((entry) => entry.id === activeBuildEntryId) ?? null
   const activeFloor = floors.find((floor) => floor.id === activeFloorId) ?? floors[0]
   const enabledFloorIds = useMemo(
     () => new Set(floors.filter((floor) => floorEnabledById[floor.id] !== false).map((floor) => floor.id)),
     [floorEnabledById, floors],
   )
+  const agentDiff = useMemo<AgentSceneDiff | null>(() => {
+    if (!agentPatch || agentPatch.status === 'rolled_back' || agentPatch.status === 'applied') return null
+    const added = agentPatch.ops.flatMap((operation) => {
+      if (operation.op !== 'add_object' || !operation.object) return []
+      const object = agentRepository.normalizeObject(operation.object)
+      if (!object?.id || !object.floorId || !object.footprint) return []
+      return [{ id: object.id, floorId: object.floorId, kind: object.kind, name: object.name ?? '未命名对象', transform: { x: object.transform.x, z: object.transform.z, rotationY: object.transform.rotationY }, footprint: object.footprint }]
+    })
+    return {
+      status: agentPatch.status ?? 'proposed',
+      added,
+      removedIds: agentPatch.ops.flatMap((operation) => operation.op === 'remove_object' && operation.object_id ? [operation.object_id] : []),
+      updatedIds: agentPatch.ops.flatMap((operation) => operation.op === 'update_object' && operation.object_id ? [operation.object_id] : []),
+    }
+  }, [agentPatch])
   const nextFloor = activeFloor ? floors.find((floor) => floor.level === activeFloor.level + 1) : undefined
   const buildHint = !activeEntry
     ? '选择建筑后按住拖动可调整位置'
@@ -665,6 +682,21 @@ export function FactoryEditorPage({ onNavigate }: { onNavigate: (page: AppPage) 
   }
 
   useEffect(() => {
+    const refreshAgentPatch = (event?: Event) => {
+      const factoryId = (event as CustomEvent<{ factoryId?: string }> | undefined)?.detail?.factoryId
+      if (factoryId && factoryId !== factory.id) return
+      setAgentPatch(readAgentPatch(factory.id))
+    }
+    refreshAgentPatch()
+    window.addEventListener('forgecore-agent-patch-change', refreshAgentPatch)
+    window.addEventListener('storage', refreshAgentPatch)
+    return () => {
+      window.removeEventListener('forgecore-agent-patch-change', refreshAgentPatch)
+      window.removeEventListener('storage', refreshAgentPatch)
+    }
+  }, [factory.id])
+
+  useEffect(() => {
     if (floors.some((floor) => floor.id === activeFloorId)) return
     setActiveFloorId(floors[0]?.id ?? '')
   }, [activeFloorId, floors])
@@ -745,7 +777,10 @@ export function FactoryEditorPage({ onNavigate }: { onNavigate: (page: AppPage) 
           onDragStart={beginFacilityDrag}
           simulationRunning={running}
           simTime={simulation.elapsedSimSec}
+          agentDiff={agentDiff}
         />
+
+        {agentDiff && (agentDiff.added.length + agentDiff.removedIds.length + agentDiff.updatedIds.length > 0) && <aside className="agent-diff-legend" aria-label="Agent 设计差异预览"><strong>Agent 差异预览</strong><span className="agent-diff-legend__add">新增 {agentDiff.added.length}</span><span className="agent-diff-legend__remove">删除 {agentDiff.removedIds.length}</span><span className="agent-diff-legend__update">更新 {agentDiff.updatedIds.length}</span></aside>}
 
         <aside className="floor-stack-panel" aria-label="楼层选择与新建">
           <header><Layers /><span><strong>楼层</strong></span></header>

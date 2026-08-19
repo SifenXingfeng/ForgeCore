@@ -11,7 +11,10 @@
     "validate:floors": "tsx tools/floor-visibility/validate.ts",
     "validate:agv": "tsx tools/agv-navigation/validate.ts",
     "validate:drone": "tsx tools/drone-navigation/validate.ts",
-    "validate:warehouse-dispatch": "tsx tools/warehouse-dispatch/validate.ts"
+    "validate:warehouse-dispatch": "tsx tools/warehouse-dispatch/validate.ts",
+    "validate:simulation-engine": "tsx tools/simulation-engine/validate.ts",
+    "validate:simulation-branch": "tsx tools/simulation-branch/validate.ts",
+    "validate:agent-workflow": "tsx tools/agent-workflow/validate.ts"
   },
   "dependencies": {
     "@react-three/drei": "10.7.8",

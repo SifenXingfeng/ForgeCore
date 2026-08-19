@@ -6,6 +6,7 @@ import { AGV_NAVIGATION_CLEARANCE_M, AGV_VEHICLE_SEPARATION_M, findAgvYieldPath,
 import { DRONE_INITIAL_HOVER_M, DRONE_VEHICLE_SEPARATION_M, droneDockingPoint, droneDockingPoints, findShortestDronePath, type DroneDockingRole, type DroneDynamicObstacle } from '../domain/dronePathfinding'
 import { MACHINE_PORT_INDICES, SHELF_LAYOUT, alignPathToPorts, buildOrthogonalConnectorPath, buildOrthogonalPath, compactPath, conveyorEndpointFloorId, conveyorPortAnchor, conveyorSpatialLength, facilityCenter, inclineHorizontalRun, polylineLength, supportsTripleConveyorPorts, type GridFacilityBounds, type GridPoint, type MachinePortIndex } from '../domain/conveyorPath'
 import { conveyorPlacementBlocked, facilityPlacementBlocked } from '../domain/placementCollision'
+import { advanceSimulation, type AdvanceSimulationKernel } from '../domain/advanceSimulation'
 import type {
   ActivityEvent,
   AgvProgram,
@@ -15,6 +16,7 @@ import type {
   Factory,
   FactoryMetrics,
   FactoryObject,
+  FactoryObjectKind,
   FactoryObjectConfig,
   Floor,
   ForgeProjectData,
@@ -72,6 +74,12 @@ let idSequence = 1
 const createId = (prefix: string): string => `${prefix}-${Date.now().toString(36)}-${(idSequence++).toString(36)}`
 
 const nowIso = (): string => new Date().toISOString()
+
+const bumpDesignVersion = (factory: Factory): Factory => ({
+  ...factory,
+  designVersion: Math.max(1, Number(factory.designVersion) || 1) + 1,
+  updatedAt: nowIso(),
+})
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value))
 
@@ -636,6 +644,52 @@ const defaultFootprint = (kind: NewFactoryObject['kind']) => {
       return { width: 4, depth: 4 }
     default:
       return { width: 2, depth: 2 }
+  }
+}
+
+const materializeAgentObject = (
+  raw: Record<string, unknown>,
+  factoryId: Id,
+  floors: Floor[],
+  existing?: FactoryObject,
+): FactoryObject | null => {
+  const supportedKinds: FactoryObjectKind[] = ['machine', 'conveyor', 'rack', 'shelf', 'buffer', 'agv', 'drone']
+  const kind = raw.kind as FactoryObjectKind
+  if (!supportedKinds.includes(kind)) return null
+  const transform = raw.transform && typeof raw.transform === 'object' ? raw.transform as Record<string, unknown> : raw
+  const footprint = raw.footprint && typeof raw.footprint === 'object' ? raw.footprint as Record<string, unknown> : {}
+  const id = typeof raw.id === 'string' ? raw.id : existing?.id
+  if (!id) return null
+  const rotationValue = Number(transform.rotationY ?? existing?.transform.rotationY ?? 0)
+  const rotationY = ([0, 90, 180, 270] as const).includes(rotationValue as 0 | 90 | 180 | 270)
+    ? rotationValue as GridTransform['rotationY']
+    : 0
+  const x = Number(transform.x ?? existing?.transform.x)
+  const z = Number(transform.z ?? existing?.transform.z)
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return null
+  const defaultConfig = defaultConfigForKind(kind)
+  const rawConfig = raw.config && typeof raw.config === 'object' ? raw.config as FactoryObjectConfig : defaultConfig
+  const config = kind === 'rack' && rawConfig.kind === 'rack'
+    ? normalizeWarehouseConfig(rawConfig)
+    : rawConfig
+  const floorId = typeof raw.floorId === 'string' ? raw.floorId : existing?.floorId ?? floors[0]?.id ?? `floor-${factoryId}`
+  const defaultSize = defaultFootprint(kind)
+  return {
+    id,
+    factoryId,
+    floorId,
+    kind,
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name : existing?.name ?? objectLabel(kind),
+    modelRef: typeof raw.modelRef === 'string' ? raw.modelRef : raw.modelRef === null ? null : existing?.modelRef ?? null,
+    transform: { x, z, rotationY },
+    footprint: {
+      width: Math.max(1, Number(footprint.width ?? existing?.footprint.width ?? defaultSize.width) || defaultSize.width),
+      depth: Math.max(1, Number(footprint.depth ?? existing?.footprint.depth ?? defaultSize.depth) || defaultSize.depth),
+    },
+    status: typeof raw.status === 'string' ? raw.status as FactoryObject['status'] : existing?.status ?? 'ready',
+    config,
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : existing?.createdAt ?? nowIso(),
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : nowIso(),
   }
 }
 
@@ -2318,47 +2372,20 @@ const updateObjectStatuses = (objects: FactoryObject[], simulation: SimulationSt
   })
 }
 
-const advanceSimulationInPlace = (data: ForgeProjectData): void => {
-  const { simulation, inventory, objects, recipes, activities } = data
-  rebuildDirectionalInventoryReservations(inventory, simulation)
-  simulation.elapsedSimSec += STEP_SECONDS
-  simulation.tickCount += 1
-
-  updateTransit(simulation, inventory, objects, activities, STEP_SECONDS)
-  dispatchWarehouseInventory(simulation, objects, inventory)
-  updateAgvSimulation(data.factory, data.floors, objects, data.items, inventory, simulation, activities)
-  updateDroneSimulation(data.factory, data.floors, objects, data.items, inventory, simulation, activities)
-
-  for (const runtime of Object.values(simulation.machineRuntime)) {
-    const recipe = getRecipe(recipes, runtime.recipeId)
-    if (!recipe?.enabled) continue
-    updateMachineState(runtime, recipe, getMachineObject(objects, runtime.machineObjectId), STEP_SECONDS, activities, simulation)
-    const outgoing = objects.filter((object) => object.config.kind === 'conveyor' && object.config.fromObjectId === runtime.machineObjectId)
-    for (const connection of outgoing) {
-      if (connection.config.kind !== 'conveyor' || !connection.config.toObjectId) continue
-      const outputItemId = recipe.outputs.length === 1 ? recipe.outputs[0].itemId : connection.config.outputItemId ?? null
-      dispatchMachineOutput(simulation, objects, runtime, connection.id, connection.config.toObjectId, outputItemId)
-    }
-  }
-
-  simulation.completedTransportDurationsSec = simulation.completedTransportDurationsSec.slice(-120)
-  data.metrics = calculateMetrics(simulation, inventory, objects)
-  updateObjectStatuses(objects, simulation)
-
-  if (simulation.elapsedSimSec >= simulation.nextMetricSampleAtSec) {
-    const machineIds = objects.filter((object) => object.kind === 'machine').map((object) => object.id)
-    const sample: MetricSample = {
-      elapsedSimSec: simulation.elapsedSimSec,
-      throughputPerMin: data.metrics.currentThroughputPerMin,
-      workInProgress: data.metrics.workInProgress,
-      finishedGoods: data.metrics.totalProduced,
-      machineAUtilization: data.metrics.machineUtilization[machineIds[0] ?? ''] ?? 0,
-      machineBUtilization: data.metrics.machineUtilization[machineIds[1] ?? ''] ?? 0,
-    }
-    data.metricSeries.push(sample)
-    data.metricSeries.splice(0, Math.max(0, data.metricSeries.length - MAX_METRIC_SAMPLES))
-    simulation.nextMetricSampleAtSec = Math.floor(simulation.elapsedSimSec) + 1
-  }
+export const forgeSimulationKernel: AdvanceSimulationKernel = {
+  stepSeconds: STEP_SECONDS,
+  maxMetricSamples: MAX_METRIC_SAMPLES,
+  rebuildReservations: rebuildDirectionalInventoryReservations,
+  updateTransit,
+  dispatchWarehouseInventory,
+  updateAgv: updateAgvSimulation,
+  updateDrone: updateDroneSimulation,
+  getRecipe,
+  getMachineObject,
+  updateMachineState,
+  dispatchMachineOutput,
+  calculateMetrics,
+  updateObjectStatuses,
 }
 
 const projectSnapshot = (state: ForgeStore): ForgeProjectData => ({
@@ -2439,6 +2466,12 @@ export interface InclineConveyorInput {
   connectedPortIndex?: MachinePortIndex | null
 }
 
+export interface AgentDesignCommit {
+  factory: Factory
+  objects: unknown[]
+  inventory: InventoryRecord[]
+}
+
 export interface ForgeStore extends ForgeProjectData {
   selectedObjectId: Id | null
   saveStatus: SaveStatus
@@ -2483,6 +2516,8 @@ export interface ForgeStore extends ForgeProjectData {
   applyRealtimeActivity: (event: ActivityEvent) => void
   clearWorkspace: () => void
   markDirty: () => void
+  commitAgentDesign: (design: AgentDesignCommit) => boolean
+  syncAgentFactory: (factory: Factory) => void
   dismissToast: (id: Id) => void
   clearToasts: () => void
 }
@@ -2533,7 +2568,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     }
     set({
       floors: [...floors, floor],
-      factory: { ...state.factory, schemaVersion: Math.max(4, state.factory.schemaVersion), updatedAt: nowIso() },
+      factory: bumpDesignVersion({ ...state.factory, schemaVersion: Math.max(4, state.factory.schemaVersion) }),
       saveStatus: 'dirty',
       toasts: addToast(state, { title: `${level}F 已创建`, description: `层高 ${normalizedHeight.toFixed(1)}m，可切换到新楼层继续建造`, tone: 'success' }),
     })
@@ -2552,6 +2587,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     if (!state.objects.some((object) => object.id === id)) return false
     set({
       objects: state.objects.map((object) => object.id === id ? { ...object, name: normalized, updatedAt: nowIso() } : object),
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
     })
     return true
@@ -2559,7 +2595,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
 
   addObject: (input) => {
     const state = get()
-    const id = createId(`object-${input.kind}`)
+    const id = input.id ?? createId(`object-${input.kind}`)
     const footprint = input.footprint ?? defaultFootprint(input.kind)
     const snap = (value: number) => Math.round(value / state.factory.gridSizeM) * state.factory.gridSizeM
     const floorId = input.floorId ?? state.floors[0]?.id ?? `floor-${state.factory.id}`
@@ -2628,7 +2664,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       simulation.droneRuntime ??= {}
       simulation.droneRuntime[id] = createDroneRuntime(object, state.floors)
     }
-    set({ objects, inventory, simulation, selectedObjectId: id, saveStatus: 'dirty' })
+    set({ objects, inventory, simulation, selectedObjectId: id, factory: bumpDesignVersion(state.factory), saveStatus: 'dirty' })
     return id
   },
 
@@ -2727,7 +2763,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       }
       return object
     })
-    set({ objects, saveStatus: 'dirty' })
+    set({ objects, factory: bumpDesignVersion(latest.factory), saveStatus: 'dirty' })
     return id
   },
 
@@ -2810,6 +2846,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
             ? { ...object, config: { ...object.config, toObjectId: id }, updatedAt: nowIso() }
             : { ...object, config: { ...object.config, fromObjectId: id }, updatedAt: nowIso() }
         }),
+        factory: bumpDesignVersion(state.factory),
         saveStatus: 'dirty',
       })
     }
@@ -2855,6 +2892,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     set({
       objects,
       simulation: { ...state.simulation, transitItems: state.simulation.transitItems.filter((item) => item.conveyorObjectId !== id) },
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
       toasts: addToast(state, { title: '运输方向已反转', description: '为避免端口语义倒置，原有两端连接已解除，请从新的输出端继续拉线', tone: 'info' }),
     })
@@ -2917,7 +2955,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
-    set({ objects: [...state.objects, connection], selectedObjectId: id, saveStatus: 'dirty', toasts: addToast(state, { title: '传送带连接已创建', description: `${fromObject.name} → ${toObject.name}`, tone: 'success' }) })
+    set({ objects: [...state.objects, connection], factory: bumpDesignVersion(state.factory), selectedObjectId: id, saveStatus: 'dirty', toasts: addToast(state, { title: '传送带连接已创建', description: `${fromObject.name} → ${toObject.name}`, tone: 'success' }) })
     return id
   },
 
@@ -2979,6 +3017,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     set({
       objects,
       simulation,
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
     })
     return true
@@ -3008,6 +3047,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     set({
       objects: refreshConnectionPaths(objects),
       simulation,
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
     })
   },
@@ -3091,6 +3131,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       inventory,
       selectedObjectId: state.selectedObjectId === id ? null : state.selectedObjectId,
       simulation,
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
     })
   },
@@ -3188,6 +3229,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       objects,
       simulation,
       inventory,
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
     })
   },
@@ -3221,6 +3263,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     set({
       items,
       inventory: ensureWarehouseInventoryRecords(state.inventory, state.objects, items),
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
       toasts: addToast(state, {
         title: exists ? '物品已更新' : '物品已创建',
@@ -3241,6 +3284,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     set({
       items: state.items.filter((item) => item.id !== id),
       inventory: state.inventory.filter((record) => record.itemId !== id),
+      factory: bumpDesignVersion(state.factory),
       saveStatus: 'dirty',
       toasts: addToast(state, { title: '物品已删除', description: removed ? `${removed.name} · ${removed.code}` : undefined, tone: 'info' }),
     })
@@ -3275,7 +3319,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     })
     const simulation = deepClone(state.simulation)
     boundMachineIds.forEach((machineId) => { simulation.machineRuntime[machineId] = createMachineRuntime(machineId, recipe) })
-    set({ recipes, objects, simulation, saveStatus: 'dirty' })
+    set({ recipes, objects, simulation, factory: bumpDesignVersion(state.factory), saveStatus: 'dirty' })
   },
 
   removeRecipe: (id) => {
@@ -3285,7 +3329,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
       set({ toasts: addToast(state, { title: '无法删除配方', description: '请先从机器上解除该配方', tone: 'warning' }) })
       return false
     }
-    set({ recipes: state.recipes.filter((recipe) => recipe.id !== id), saveStatus: 'dirty' })
+    set({ recipes: state.recipes.filter((recipe) => recipe.id !== id), factory: bumpDesignVersion(state.factory), saveStatus: 'dirty' })
     return true
   },
 
@@ -3365,7 +3409,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     // runtime, inventory and status data is copied. This preserves deterministic
     // 0.25s settlement without repeatedly cloning the complete project.
     const next = simulationDraft(state)
-    for (let index = 0; index < maxSteps; index += 1) advanceSimulationInPlace(next)
+    for (let index = 0; index < maxSteps; index += 1) advanceSimulation(next, forgeSimulationKernel)
     next.simulation.accumulatedUnsteppedSec = simulatedSeconds - maxSteps * STEP_SECONDS
     reconcileSimulationDraft(next, state)
     set({ ...next })
@@ -3458,6 +3502,7 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
     void _schema
     const restored = deepClone(project)
     restored.factory.schemaVersion = Math.max(4, restored.factory.schemaVersion ?? 1)
+    restored.factory.designVersion = Math.max(1, Number(restored.factory.designVersion) || 1)
     restored.floors = normalizeFloors(restored.floors, restored.factory.id)
     restored.simulation.warehouseDispatchCooldownSecByPort ??= {}
     for (const warehouse of restored.objects.filter((object) => object.kind === 'rack')) {
@@ -3528,6 +3573,80 @@ export const useForgeStore = create<ForgeStore>((set, get) => ({
   },
 
   markDirty: () => set({ saveStatus: 'dirty' }),
+  commitAgentDesign: (design) => {
+    const state = get()
+    if (!design.factory || !Array.isArray(design.objects) || !Array.isArray(design.inventory)) return false
+    const materialized: FactoryObject[] = []
+    const seen = new Set<Id>()
+    for (const raw of design.objects) {
+      if (!raw || typeof raw !== 'object') return false
+      const value = raw as Record<string, unknown>
+      const existing = typeof value.id === 'string' ? state.objects.find((object) => object.id === value.id) : undefined
+      const object = materializeAgentObject(value, state.factory.id, state.floors, existing)
+      if (!object || seen.has(object.id)) return false
+      seen.add(object.id)
+      materialized.push(object)
+    }
+    const objects = refreshConnectionPaths(materialized)
+    const inventory = ensureWarehouseInventoryRecords(deepClone(design.inventory), objects, state.items)
+    const simulation = deepClone(state.simulation)
+    const previousObjects = new Map(state.objects.map((object) => [object.id, object]))
+    const objectIds = new Set(objects.map((object) => object.id))
+    simulation.transitItems = simulation.transitItems.filter((item) => (
+      objectIds.has(item.fromObjectId)
+      && (item.toObjectId === 'finished-goods' || objectIds.has(item.toObjectId))
+      && objectIds.has(item.conveyorObjectId)
+    ))
+    Object.keys(simulation.machineRuntime).forEach((id) => {
+      const object = objects.find((candidate) => candidate.id === id)
+      if (!object || object.kind !== 'machine') delete simulation.machineRuntime[id]
+    })
+    objects.filter((object) => object.kind === 'machine').forEach((object) => {
+      const config = object.config.kind === 'machine' ? object.config : undefined
+      const recipe = config?.recipeId ? getRecipe(state.recipes, config.recipeId) : undefined
+      if (!recipe) {
+        delete simulation.machineRuntime[object.id]
+        return
+      }
+      const previous = previousObjects.get(object.id)
+      const previousRecipeId = previous?.config.kind === 'machine' ? previous.config.recipeId : null
+      if (!simulation.machineRuntime[object.id] || previousRecipeId !== config?.recipeId) {
+        simulation.machineRuntime[object.id] = createMachineRuntime(object.id, recipe)
+      }
+    })
+    ensureAgvRuntimes(simulation, objects)
+    ensureDroneRuntimes(simulation, objects, state.floors)
+    simulation.warehouseDispatchCooldownSecByPort ??= {}
+    Object.keys(simulation.warehouseDispatchCooldownSecByPort).forEach((id) => {
+      if (!objects.some((object) => object.id === id && object.kind === 'rack')) delete simulation.warehouseDispatchCooldownSecByPort[id]
+    })
+    updateObjectStatuses(objects, simulation)
+    const metrics = calculateMetrics(simulation, inventory, objects)
+    const selectedObjectId = state.selectedObjectId && objectIds.has(state.selectedObjectId)
+      ? state.selectedObjectId
+      : objects.at(-1)?.id ?? null
+    set({
+      factory: deepClone(design.factory),
+      objects,
+      inventory,
+      simulation,
+      metrics,
+      selectedObjectId,
+      saveStatus: 'dirty',
+    })
+    return true
+  },
+  syncAgentFactory: (factory) => {
+    const state = get()
+    set({
+      // A multi-operation Agent patch is committed once by the backend. Local
+      // editor actions may bump versions per operation, so converge on the
+      // server's monotonic version after applying the candidate locally.
+      factory: deepClone(factory),
+      saveStatus: 'dirty',
+      toasts: addToast(state, { title: 'Agent 设计版本已同步', tone: 'info' }),
+    })
+  },
   dismissToast: (id) => set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
   clearToasts: () => set({ toasts: [] }),
 }))

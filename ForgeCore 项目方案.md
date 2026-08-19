@@ -3628,6 +3628,24 @@ Industry 4.0
 
 > **设计工厂，搭建产线，模拟生产，洞察瓶颈，智能优化。**
 
+## B11. Agent 设计补丁与审核边界（2026-08-19）
+
+ForgeCore 的 Agent 方案服务只生成可审核的设计补丁，不直接修改主工厂或仿真状态。补丁以 `base_version` 绑定设计快照，支持 `add_object`、`remove_object` 和 `update_object`，并在批准时执行边界、楼层、占地、传送带引用、库存数量/容量和可配置对象数量/面积约束。删除仍被传送带引用的对象必须拒绝；删除对象时其库存记录随补丁移除，并由 `inverse_ops` 恢复。
+
+服务端 `backend/app/services/agent_run_service.py` 保持纯内存、无副作用，提供 `validate_design`、`apply_ops_in_memory`、`inverse_ops`、`diff_design` 和受约束的 `propose_ops_from_analysis`。过期 `base_version` 返回冲突，批准前主厂快照不变；无 ID 的新增对象由服务端生成并回写稳定 `obj-{uuid}`。`backend/app/schemas/agent.py` 统一声明操作、状态、revision/replan、goal/constraints/provider 和 `applied_version` 元数据。批准后补丁记录 `applied_version`，回滚只允许作用于该版本，防止覆盖用户在批准后的手工编辑。前端 Agent 方案页只展示差异，用户明确批准后才调用编辑器对象操作，并在整批操作完成后以服务端返回值原子同步设计版本；当前补丁按工厂保存在浏览器会话中，页面恢复时同步恢复原始目标与新增策略，用户可以切换到编辑器检查对象后返回 Agent 页继续回滚。B11 原始补丁闭环阶段不包含仿真主循环抽取、蓝图社区页或 derived 资产管线；A3-0、A3-1/2 已在 B12 完成，蓝图社区页和 derived 资产管线仍明确排除。
+
+## B12. Agent 后续路线图交付（2026-08-19）
+
+本轮已完成原路线图中的 A2-R2、A2-R3、A3-0、A3-1/2，且没有触碰明确排除的蓝图社区页和 derived 资产管线：
+
+- **A2-R2 目标驱动 proposer 与 replan**：`factory_goal_service.py` 将自然语言目标编译为意图、时间窗口、硬/软约束和冲突；`/api/agent/goal`、`/api/agent/replan` 接入目标驱动增删设备、吞吐优化和拒绝位置避让。replan 重新读取当前 `base_version`，冲突目标返回空操作，provider 失败自动降级 deterministic。
+- **A2-R3 编辑器差异预览**：Agent 补丁按工厂写入 `sessionStorage`，编辑器以新增/删除/更新颜色框和摘要叠加显示；已批准或已回滚补丁不再显示候选叠加，页面恢复保留原目标，预览不改变主工厂，批准、回滚和页面切换保持原子版本契约。
+- **A3-0 共享仿真内核**：`src/domain/advanceSimulation.ts` 提供显式依赖的 `AdvanceSimulationKernel`；Store、分支 Worker 和 Node 校验共享它，固定 `0.25s` 结算规则保持不变。
+- **A3-1/2 SimulationBranch、Worker、双分支比较**：`simulationBranch.ts` 在纯副本上应用候选操作，浏览器优先使用 `simulationBranchWorker.ts`，Worker 缺失、构造、加载或执行失败时回退本地共享内核；比较吞吐、成品、WIP、阻塞对象、平均运输和库存，并计算 delta、提升百分比、评分及 `apply/iterate/discard` 建议。
+- **Provider 边界**：`agent_provider.py` 支持 deterministic 与 OpenAI-compatible provider。模型只产出结构化 findings；硬约束、事实校验、patch 验证和版本门禁仍由本地确定性服务负责。
+
+验收命令：`backend/alembic upgrade head`、`backend/pytest -q`、`backend/ruff check app tests`、`backend/mypy app`、`npm run check`、`npm run build`、`npm run validate:simulation-engine`、`npm run validate:simulation-branch`、`npm run validate:agent-workflow`，以及楼层、AGV、无人机、仓库节拍回归脚本均通过；后端共 19 项 pytest，直接覆盖边界、对象数、占地面积与库存总量硬约束。双分支真实 fixture 在 30 秒窗口内基线产出 13 件、候选产出 23 件，吞吐提升 76.9%，建议 `apply`；分支验证包含损坏 Worker 构造时的本地回退，Agent workflow validator 还确认非法候选不会部分提交，批准/回滚会重建或清理对应运行时。真实浏览器另行完成两台 AGV 的 revision 1→2 replan、六项指标展示、批准前新增叠加、批准后 2 个对象、正常回滚至 0，以及批准后版本变化时 409 拒绝回滚且对象保持不变；浏览器控制台无应用错误。
+
 ---
 
 # 67. 项目核心价值总结

@@ -68,6 +68,10 @@ Windows 用户也可以双击根目录的 `启动ForgeCore.cmd` 只启动前端�
 | PostgreSQL | `127.0.0.1:5440` |
 | Redis | `127.0.0.1:6380` |
 
+Agent 默认使用确定性 provider；需要接入 OpenAI-compatible 模型时设置
+`LLM_PROVIDER=openai`、`OPENAI_API_KEY`，以及可选的
+`OPENAI_MODEL`、`LLM_BASE_URL`、`AGENT_LLM_TIMEOUT_SECONDS`。模型只返回结构化分析，目标约束、对象事实和补丁安全校验仍由本地规则完成；调用失败会自动降级，并在方案页标明原因。
+
 ## 验证
 
 后端检查需要 PostgreSQL 与 Redis 已启动：
@@ -83,11 +87,24 @@ cd backend
 
 ```bash
 npm run check
+npm run build
+npm run validate:simulation-engine
+npm run validate:simulation-branch
+npm run validate:agent-workflow
 npm run validate:floors
 npm run validate:agv
 npm run validate:drone
 npm run validate:warehouse-dispatch
-npm run build
+```
+
+后端验证：
+
+```bash
+cd backend
+alembic upgrade head
+pytest -q
+ruff check app tests
+mypy app
 ```
 
 ## 当前范围
@@ -97,7 +114,9 @@ npm run build
 - 蓝图保存、公开发现、搜索、标签、热门排序、收藏、fork 及 `.fcbp` 导入导出；
 - 八个任务页面、多层 3D 编辑、固定步长仿真、AGV 二维 A* 与无人机三维 A*；
 - Factory Agent Control Room、PostgreSQL 持久化 run/step/tool call/event、12 个只读工厂工具、目标编译与工厂依赖图、确定性瓶颈诊断与历史运行；
-- Agent A2 最小可验收：`plan_design` 模式、FactoryPatch 差异预览、审批后单次 apply、`base_version` 冲突拒绝与回滚；
+- Agent `plan_design` 支持增删改对象、约束校验、拒绝后 replan、差异叠加、审批后单次 apply、`base_version` 冲突拒绝与回滚；
+- Agent 页支持当前/候选双分支仿真，Worker 优先并自动回退共享内核，展示六项指标、差异评分和 `apply/iterate/discard` 建议；
+- `src/domain/advanceSimulation.ts` 由浏览器 Store、分支 Worker 与 Node 验证脚本共用，分支始终运行在副本上；
 - 36 个 first-party 参数化物品模型和可追溯的第三方资产治理。
 
-仿真引擎当前仍以 TypeScript 在浏览器运行，后端负责用户、项目、历史数据、蓝图和 Agent 编排。Agent 已交付无需 LLM 也能工作的 A1 分析与 A2 最小 Patch 审批闭环；headless 分支仿真与多目标优化按 A3-A4 路线继续接入。权威范围与技术约束以 [ForgeCore 项目方案.md](<ForgeCore 项目方案.md>) 为准。
+仿真引擎当前仍以 TypeScript 为权威内核，后端负责用户、项目、历史数据、蓝图和 Agent 编排。权威范围与技术约束以 [ForgeCore 项目方案.md](<ForgeCore 项目方案.md>) 为准。

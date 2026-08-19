@@ -41,8 +41,25 @@ export interface FactorySceneProps {
   onDragStart?: (id: string, pointerId: number, clientX: number, clientY: number, captureTarget: HTMLElement | null) => void
   simulationRunning?: boolean
   simTime?: number
+  agentDiff?: AgentSceneDiff | null
   className?: string
   ariaLabel?: string
+}
+
+export interface AgentDiffObject {
+  id: string
+  floorId: string
+  kind: FactoryObjectKind
+  name: string
+  transform: { x: number; z: number; rotationY?: number }
+  footprint: { width: number; depth: number }
+}
+
+export interface AgentSceneDiff {
+  status: 'proposed' | 'rejected' | 'applied' | 'rolled_back'
+  added: AgentDiffObject[]
+  removedIds: string[]
+  updatedIds: string[]
 }
 
 export interface PlacementPreview {
@@ -291,6 +308,39 @@ function PlacementGhost({ preview }: { preview: PlacementPreview }) {
   return null
 }
 
+function AgentPatchOverlay({ diff, objects, floors, activeFloorId }: { diff: AgentSceneDiff; objects: FactoryObject[]; floors: Floor[]; activeFloorId: string }) {
+  const activeElevation = floors.find((floor) => floor.id === activeFloorId)?.elevationM ?? 0
+  const entries = [
+    ...diff.added.map((object) => ({ object, tone: 'add' as const })),
+    ...diff.removedIds.flatMap((id) => {
+      const object = objects.find((candidate) => candidate.id === id)
+      return object ? [{ object, tone: 'remove' as const }] : []
+    }),
+    ...diff.updatedIds.flatMap((id) => {
+      const object = objects.find((candidate) => candidate.id === id)
+      return object ? [{ object, tone: 'update' as const }] : []
+    }),
+  ]
+  return <group name="agent-patch-overlay">
+    {entries.map(({ object, tone }) => {
+      const floor = floors.find((candidate) => candidate.id === object.floorId)
+      if (!floor || object.floorId !== activeFloorId) return null
+      const color = tone === 'add' ? '#2d9b69' : tone === 'remove' ? '#c5484e' : '#d39d12'
+      const label = tone === 'add' ? 'Agent 新增' : tone === 'remove' ? 'Agent 删除' : 'Agent 更新'
+      return <group key={`${tone}-${object.id}`} position={[object.transform.x + object.footprint.width / 2, floor.elevationM - activeElevation + 0.08, object.transform.z + object.footprint.depth / 2]}>
+        <mesh renderOrder={20}>
+          <boxGeometry args={[object.footprint.width, 0.14, object.footprint.depth]} />
+          <meshBasicMaterial color={color} transparent opacity={0.2} depthWrite={false} />
+          <Edges color={color} transparent opacity={0.95} />
+        </mesh>
+        <Html center position={[0, 0.45, 0]} style={{ pointerEvents: 'none' }}>
+          <span className={`agent-scene-label agent-scene-label--${tone}`}>{label} · {object.name}</span>
+        </Html>
+      </group>
+    })}
+  </group>
+}
+
 function GhostFallback({ kind, color }: { kind: FactoryObjectKind; color: string }) {
   return (
     <mesh position={[0, kind === 'buffer' ? 0.18 : 0.65, 0]}>
@@ -347,6 +397,7 @@ export const FactoryScene = forwardRef<FactorySceneHandle, FactorySceneProps>(fu
   onDragStart,
   simulationRunning = false,
   simTime = 0,
+  agentDiff = null,
   className,
   ariaLabel = 'ForgeCore 三维工厂场景',
 }: FactorySceneProps, ref) {
@@ -451,6 +502,7 @@ export const FactoryScene = forwardRef<FactorySceneHandle, FactorySceneProps>(fu
           <Suspense fallback={<LoadingScene />}>
             <FactoryEnvironment width={factoryWidth} length={factoryLength} gridSize={gridSize} showGrid={showGrid} shadowsEnabled={runtimeShadowsEnabled} lowerFloorDepth={lowerFloorDepth} showingContextFloors={hasContextFloors} />
             {placementPreview ? <PlacementGhost preview={placementPreview} /> : null}
+            {agentDiff ? <AgentPatchOverlay diff={agentDiff} objects={objects} floors={floors} activeFloorId={activeFloorId} /> : null}
             <SceneObjects
               objects={objects}
               items={items}

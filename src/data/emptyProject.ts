@@ -79,6 +79,7 @@ export const createEmptyProjectData = (input?: {
       lengthM: input?.lengthM ?? 20,
       gridSizeM: input?.gridSizeM ?? 1,
       schemaVersion: 4,
+      designVersion: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
     },

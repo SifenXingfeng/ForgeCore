@@ -4,4 +4,7 @@ dist/
 vite.config.js
 vite.config.d.ts
 .codex-*.log
+__pycache__/
+.pytest_cache/
+backend/forgecore.db
 .playwright-cli/

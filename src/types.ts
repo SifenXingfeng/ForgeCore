@@ -137,6 +137,7 @@ export interface FactoryObject {
 }
 
 export interface NewFactoryObject {
+  id?: Id
   kind: FactoryObjectKind
   floorId?: Id
   name?: string
@@ -153,6 +154,8 @@ export interface Factory {
   lengthM: number
   gridSizeM: number
   schemaVersion: number
+  /** Monotonic design snapshot version used by Agent patches. */
+  designVersion: number
   createdAt: string
   updatedAt: string
 }
