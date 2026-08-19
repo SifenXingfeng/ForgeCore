@@ -244,7 +244,8 @@ const fromApiSnapshot = (source: ApiFactorySnapshot): PersistedForgeState => {
     factory: {
       id: source.factory.id, name: source.factory.name, widthM: source.factory.width_m,
       lengthM: source.factory.length_m, gridSizeM: source.factory.grid_size_m,
-      schemaVersion: source.factory.schema_version, createdAt: source.factory.created_at, updatedAt: source.factory.updated_at,
+      schemaVersion: source.factory.schema_version, designVersion: base.factory.designVersion,
+      createdAt: source.factory.created_at, updatedAt: source.factory.updated_at,
     },
     floors: source.floors.map((floor) => ({
       id: floor.id, factoryId: source.factory.id, level: floor.level, name: floor.name,

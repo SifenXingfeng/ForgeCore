@@ -3630,21 +3630,29 @@ Industry 4.0
 
 ## B11. Agent 设计补丁与审核边界（2026-08-19）
 
-ForgeCore 的 Agent 方案服务只生成可审核的设计补丁，不直接修改主工厂或仿真状态。补丁以 `base_version` 绑定设计快照，支持 `add_object`、`remove_object` 和 `update_object`，并在批准时执行边界、楼层、占地、传送带引用、库存数量/容量和可配置对象数量/面积约束。删除仍被传送带引用的对象必须拒绝；删除对象时其库存记录随补丁移除，并由 `inverse_ops` 恢复。
+ForgeCore 的 Agent 方案服务只生成可审核的设计补丁，不直接修改主工厂或仿真状态。补丁以 `base_version` 绑定设计快照，支持 `add_object`、`remove_object`、`move_object`、`update_config` 和 `adjust_inventory`，并在批准时执行边界、楼层、占地、传送带引用、库存数量/容量和可配置对象数量/面积约束。删除仍被传送带引用的对象必须拒绝；删除对象时其库存记录随补丁移除，并由 `inverse_operations` 恢复。
 
-服务端 `backend/app/services/agent_run_service.py` 保持纯内存、无副作用，提供 `validate_design`、`apply_ops_in_memory`、`inverse_ops`、`diff_design` 和受约束的 `propose_ops_from_analysis`。过期 `base_version` 返回冲突，批准前主厂快照不变；无 ID 的新增对象由服务端生成并回写稳定 `obj-{uuid}`。`backend/app/schemas/agent.py` 统一声明操作、状态、revision/replan、goal/constraints/provider 和 `applied_version` 元数据。批准后补丁记录 `applied_version`，回滚只允许作用于该版本，防止覆盖用户在批准后的手工编辑。前端 Agent 方案页只展示差异，用户明确批准后才调用编辑器对象操作，并在整批操作完成后以服务端返回值原子同步设计版本；当前补丁按工厂保存在浏览器会话中，页面恢复时同步恢复原始目标与新增策略，用户可以切换到编辑器检查对象后返回 Agent 页继续回滚。B11 原始补丁闭环阶段不包含仿真主循环抽取、蓝图社区页或 derived 资产管线；A3-0、A3-1/2 已在 B12 完成，蓝图社区页和 derived 资产管线仍明确排除。
+服务端以 PostgreSQL `AgentRun`、`AgentPatch`、`AgentApproval` 为持久化事实，`backend/app/services/factory_patch_service.py` 提供无副作用的 `validate_design`、`apply_ops_in_memory`、逆操作、diff 和受约束 proposer；`agent_run_service.py` 负责 run/step/tool/approval 编排与事务应用。过期 `base_version` 返回冲突，批准前主厂快照不变；新增对象由服务端生成并回写稳定 `obj-{uuid}`。批准后记录应用时工厂版本，回滚只允许作用于该版本，防止覆盖用户在批准后的手工编辑。前端 Control Room 只展示差异，用户明确批准后才由后端原子同步全量工厂；当前补丁按工厂保存在浏览器会话中，用户可切换到编辑器检查叠加后返回继续审批或回滚。B11 原始补丁闭环阶段不包含蓝图社区 UI 或 derived 资产管线；A3-0、A3-1/2 已在 B12 完成，上述排除项保持不变。
 
 ## B12. Agent 后续路线图交付（2026-08-19）
 
 本轮已完成原路线图中的 A2-R2、A2-R3、A3-0、A3-1/2，且没有触碰明确排除的蓝图社区页和 derived 资产管线：
 
-- **A2-R2 目标驱动 proposer 与 replan**：`factory_goal_service.py` 将自然语言目标编译为意图、时间窗口、硬/软约束和冲突；`/api/agent/goal`、`/api/agent/replan` 接入目标驱动增删设备、吞吐优化和拒绝位置避让。replan 重新读取当前 `base_version`，冲突目标返回空操作，provider 失败自动降级 deterministic。
+- **A2-R2 目标驱动 proposer 与 replan**：`factory_goal_service.py` 将自然语言目标编译为意图、时间窗口、硬/软约束和冲突；`POST /api/agent/patches/{patch_id}/replan` 在已拒绝或冲突 Patch 上生成持久化新 revision，重新读取当前工厂版本、避开被拒绝的对象或位置，并再次执行完整约束校验。provider 失败自动降级 deterministic。
 - **A2-R3 编辑器差异预览**：Agent 补丁按工厂写入 `sessionStorage`，编辑器以新增/删除/更新颜色框和摘要叠加显示；已批准或已回滚补丁不再显示候选叠加，页面恢复保留原目标，预览不改变主工厂，批准、回滚和页面切换保持原子版本契约。
 - **A3-0 共享仿真内核**：`src/domain/advanceSimulation.ts` 提供显式依赖的 `AdvanceSimulationKernel`；Store、分支 Worker 和 Node 校验共享它，固定 `0.25s` 结算规则保持不变。
 - **A3-1/2 SimulationBranch、Worker、双分支比较**：`simulationBranch.ts` 在纯副本上应用候选操作，浏览器优先使用 `simulationBranchWorker.ts`，Worker 缺失、构造、加载或执行失败时回退本地共享内核；比较吞吐、成品、WIP、阻塞对象、平均运输和库存，并计算 delta、提升百分比、评分及 `apply/iterate/discard` 建议。
 - **Provider 边界**：`agent_provider.py` 支持 deterministic 与 OpenAI-compatible provider。模型只产出结构化 findings；硬约束、事实校验、patch 验证和版本门禁仍由本地确定性服务负责。
 
-验收命令：`backend/alembic upgrade head`、`backend/pytest -q`、`backend/ruff check app tests`、`backend/mypy app`、`npm run check`、`npm run build`、`npm run validate:simulation-engine`、`npm run validate:simulation-branch`、`npm run validate:agent-workflow`，以及楼层、AGV、无人机、仓库节拍回归脚本均通过；后端共 19 项 pytest，直接覆盖边界、对象数、占地面积与库存总量硬约束。双分支真实 fixture 在 30 秒窗口内基线产出 13 件、候选产出 23 件，吞吐提升 76.9%，建议 `apply`；分支验证包含损坏 Worker 构造时的本地回退，Agent workflow validator 还确认非法候选不会部分提交，批准/回滚会重建或清理对应运行时。真实浏览器另行完成两台 AGV 的 revision 1→2 replan、六项指标展示、批准前新增叠加、批准后 2 个对象、正常回滚至 0，以及批准后版本变化时 409 拒绝回滚且对象保持不变；浏览器控制台无应用错误。
+验收命令：`alembic upgrade head`、`pytest -q`、`ruff check app tests`、`mypy app`、`npm run check`、`npm run build`、`npm run validate:simulation-engine`、`npm run validate:simulation-branch`、`npm run validate:agent-workflow`，以及楼层、AGV、无人机、仓库节拍回归脚本均通过；后端共 29 项 pytest，覆盖账户、蓝图、工厂持久化、Patch 边界、对象数、占地面积、库存约束、结构增删回滚与 replan revision。双分支 fixture 在 30 秒窗口内基线产出 13 件、候选产出 23 件，吞吐提升 76.9%，建议 `apply`；分支验证包含 Worker 构造失败时本地回退，Agent workflow validator 还确认非法候选不会部分提交。
+
+## B13. 黑白工作区与单仓整合（2026-08-19）
+
+ForgeCore 的正式 UI 统一采用 52.7 定义的高对比黑白工业工作区：账户入口与主菜单使用本地全屏视频，业务页使用白色工作面、黑色主操作、1px 分隔和克制状态色；工厂 3D 场景中的路线、选择、运输和异常色仍作为业务语义保留。Factory Agent Control Room 已纳入同一视觉系统，并补齐持久化 Patch 的拒绝原因、replan、编辑器叠加、六项 SimulationBranch 对比、评分建议、批准应用和版本安全回滚。
+
+项目维护入口统一为 `/Users/ivy/ForgeCore`。黑白 UI 提交、PostgreSQL/FastAPI 后端、两份工作区的未提交 Agent 功能、共享仿真内核和审计文档均合并到该仓；重复工作区只在完成提交清单、未跟踪文件、自动化与浏览器验证后移除。后端同时修复全量覆盖后 ORM identity map 返回旧关系集合的问题，并明确声明异步 SQLAlchemy 的 `greenlet` 与 passlib 兼容的 bcrypt 版本，使全新环境可重复安装、迁移和测试。
+
+真实浏览器验收使用 30 秒“新增一架无人机”方案：初版补丁位于 `(0,0)`，拒绝并填写入口留空原因后生成第 2 版持久化 revision，位置改为 `(0,1)`；进入编辑器时只显示候选叠加且主工厂对象数保持 0，批准后对象数变为 1、候选叠加消失，回滚后对象数恢复为 0。分支摘要按真实时长显示 `00:30`，不再把不足一分钟的窗口四舍五入为 1 分钟。3D canvas 在 1440×900 下为非空网格，458px 移动视口的 Agent Control Room 与编辑器均无横向溢出；浏览器恢复默认视口后不保留测试覆盖。
 
 ---
 

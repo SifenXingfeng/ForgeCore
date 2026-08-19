@@ -2,11 +2,13 @@ import type { FactoryMetrics, FactoryObject, ForgeProjectData, MachineRuntimeSta
 import { runSimulationSteps, type AdvanceSimulationKernel } from './advanceSimulation'
 
 export interface SimulationBranchOperation {
-  op: 'add_object' | 'remove_object' | 'update_object'
+  op: 'add_object' | 'remove_object' | 'update_object' | 'adjust_inventory'
   object_id?: string
   object?: Record<string, unknown>
   changes?: Record<string, unknown>
   unset?: string[]
+  item_id?: string
+  quantity?: number
 }
 
 export interface SimulationBranchMetrics {
@@ -59,6 +61,13 @@ function deepMerge(target: Record<string, unknown>, changes: Record<string, unkn
 export function applySimulationBranchOperations(project: ForgeProjectData, operations: SimulationBranchOperation[]): ForgeProjectData {
   const candidate = clone(project)
   for (const operation of operations) {
+    if (operation.op === 'adjust_inventory' && operation.object_id && operation.item_id) {
+      const record = candidate.inventory.find((item) => (
+        item.locationId === operation.object_id && item.itemId === operation.item_id
+      ))
+      if (record && Number.isFinite(operation.quantity)) record.quantity = Math.max(0, Number(operation.quantity))
+      continue
+    }
     if (operation.op === 'remove_object' && operation.object_id) {
       candidate.objects = candidate.objects.filter((object) => object.id !== operation.object_id)
       candidate.inventory = candidate.inventory.filter((record) => record.locationId !== operation.object_id && !record.locationId.startsWith(`${operation.object_id}:`))

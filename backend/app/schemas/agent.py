@@ -299,3 +299,7 @@ class AgentRunDetail(AgentRunSchema):
 
 class AgentApprovalDecision(BaseModel):
     note: str | None = Field(default=None, max_length=2000)
+
+
+class AgentReplanRequest(BaseModel):
+    rejection_reason: str = Field(min_length=1, max_length=2000)

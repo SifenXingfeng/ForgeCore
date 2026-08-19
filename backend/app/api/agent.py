@@ -12,6 +12,7 @@ from app.schemas.agent import (
     AgentEvent,
     AgentEventCreate,
     AgentPatchSchema,
+    AgentReplanRequest,
     AgentRunCreate,
     AgentRunDetail,
     AgentSession,
@@ -28,6 +29,7 @@ from app.services.agent_run_service import (
     load_agent_patch,
     load_agent_run,
     reject_agent_patch,
+    replan_agent_patch,
     rollback_agent_patch,
 )
 from app.services.agent_service import (
@@ -205,6 +207,20 @@ async def apply_patch(patch_id: str, user: CurrentUser, db: DbSession) -> AgentP
         detail = str(exc)
         code = status.HTTP_409_CONFLICT if "已变更" in detail or "失效" in detail else status.HTTP_409_CONFLICT
         raise HTTPException(status_code=code, detail=detail) from exc
+
+
+@router.post("/patches/{patch_id}/replan", response_model=AgentRunDetail)
+async def replan_patch(
+    patch_id: str,
+    payload: AgentReplanRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> AgentRun:
+    patch = await _owned_patch(patch_id, user.id, db)
+    try:
+        return await replan_agent_patch(patch, db, rejection_reason=payload.rejection_reason)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post("/patches/{patch_id}/rollback", response_model=AgentPatchSchema)

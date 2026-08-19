@@ -1,3 +1,5 @@
+import type { NewFactoryObject } from '../types'
+import type { SimulationBranchOperation } from '../domain/simulationBranch'
 import { apiRequest } from './apiClient'
 
 export type AgentRunStatus =
@@ -199,6 +201,89 @@ export interface AgentPatch {
   approvals: AgentApproval[]
 }
 
+export const agentPatchStorageKey = (factoryId: string) => `forgecore.agent.patch.v2.${factoryId}`
+
+export function readAgentPatch(factoryId: string): AgentPatch | null {
+  try {
+    const value = window.sessionStorage.getItem(agentPatchStorageKey(factoryId))
+    return value ? JSON.parse(value) as AgentPatch : null
+  } catch {
+    return null
+  }
+}
+
+export function writeAgentPatch(factoryId: string, patch: AgentPatch | null): void {
+  try {
+    if (patch) window.sessionStorage.setItem(agentPatchStorageKey(factoryId), JSON.stringify(patch))
+    else window.sessionStorage.removeItem(agentPatchStorageKey(factoryId))
+  } catch {
+    // The Control Room remains usable when session storage is unavailable.
+  }
+  window.dispatchEvent(new CustomEvent('forgecore-agent-patch-change', { detail: { factoryId } }))
+}
+
+export function normalizeAgentObject(operation: FactoryPatchOp): NewFactoryObject | null {
+  if (operation.kind !== 'add_object') return null
+  const value = operation.params
+  const kind = String(value.kind ?? '')
+  if (!['machine', 'rack', 'shelf', 'buffer', 'agv', 'drone'].includes(kind)) return null
+  const x = Number(value.x)
+  const z = Number(value.z)
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return null
+  const rawRotation = Number(value.rotation_y ?? 0)
+  const rotationY = ([0, 90, 180, 270] as const).includes(rawRotation as 0 | 90 | 180 | 270)
+    ? rawRotation as 0 | 90 | 180 | 270
+    : 0
+  return {
+    id: operation.object_id ?? undefined,
+    kind: kind as NewFactoryObject['kind'],
+    floorId: typeof value.floor_id === 'string' ? value.floor_id : undefined,
+    name: typeof value.name === 'string' ? value.name : undefined,
+    modelRef: typeof value.model_ref === 'string' ? value.model_ref : null,
+    transform: { x, z, rotationY },
+    footprint: {
+      width: Math.max(1, Number(value.footprint_width) || 1),
+      depth: Math.max(1, Number(value.footprint_depth) || 1),
+    },
+    config: value.config && typeof value.config === 'object'
+      ? value.config as NewFactoryObject['config']
+      : { kind } as NewFactoryObject['config'],
+  }
+}
+
+export function simulationOperationsForPatch(patch: AgentPatch): SimulationBranchOperation[] {
+  return patch.operations.flatMap((operation): SimulationBranchOperation[] => {
+    if (operation.kind === 'add_object') {
+      const object = normalizeAgentObject(operation)
+      return object ? [{ op: 'add_object', object: object as unknown as Record<string, unknown> }] : []
+    }
+    if (operation.kind === 'remove_object' && operation.object_id) {
+      return [{ op: 'remove_object', object_id: operation.object_id }]
+    }
+    if (operation.kind === 'move_object' && operation.object_id) {
+      const changes: Record<string, unknown> = { transform: {} }
+      const transform = changes.transform as Record<string, unknown>
+      if (operation.params.x != null) transform.x = Number(operation.params.x)
+      if (operation.params.z != null) transform.z = Number(operation.params.z)
+      if (operation.params.floor_id != null) changes.floorId = String(operation.params.floor_id)
+      return [{ op: 'update_object', object_id: operation.object_id, changes }]
+    }
+    if (operation.kind === 'update_config' && operation.object_id) {
+      const config = operation.params.config_patch ?? operation.params
+      return [{ op: 'update_object', object_id: operation.object_id, changes: { config } }]
+    }
+    if (operation.kind === 'adjust_inventory') {
+      return [{
+        op: 'adjust_inventory',
+        object_id: operation.object_id ?? undefined,
+        item_id: typeof operation.params.item_id === 'string' ? operation.params.item_id : undefined,
+        quantity: Number(operation.params.quantity),
+      }]
+    }
+    return []
+  })
+}
+
 export interface AgentRun {
   id: string
   owner_id: string
@@ -277,6 +362,13 @@ export const agentRepository = {
     return apiRequest<AgentPatch>(`/api/agent/patches/${encodeURIComponent(patchId)}/reject`, {
       method: 'POST',
       body: JSON.stringify({ note: note ?? null }),
+    })
+  },
+
+  replanPatch(patchId: string, rejectionReason: string): Promise<AgentRun> {
+    return apiRequest<AgentRun>(`/api/agent/patches/${encodeURIComponent(patchId)}/replan`, {
+      method: 'POST',
+      body: JSON.stringify({ rejection_reason: rejectionReason }),
     })
   },
 

@@ -6365,6 +6365,78 @@ body { background: #f3f3f3; }
 }
 .agent-patch__error { color: #8f2424; font-size: 13px; font-weight: 500; }
 
+.agent-branch-run {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  background: #fff;
+  border: 1px solid #111;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.agent-branch-run:hover:not(:disabled) { color: #fff; background: #111; }
+.agent-branch-run:disabled { cursor: not-allowed; opacity: 0.5; }
+.agent-branch-run svg { width: 16px; height: 16px; }
+
+.agent-branch-result {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #cfcfcf;
+}
+.agent-branch-result > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.agent-branch-result > header > div { display: grid; gap: 3px; }
+.agent-branch-result > header span { color: #777; font-size: 10px; letter-spacing: 0; }
+.agent-branch-result > header strong { color: #111; font-size: 16px; font-weight: 500; }
+.agent-branch-result > header > b {
+  min-width: 54px;
+  padding: 8px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+  background: #111;
+}
+.agent-branch-table { display: grid; grid-template-columns: minmax(110px, 1.3fr) repeat(3, minmax(58px, .7fr)); }
+.agent-branch-table > span { padding: 7px 8px; color: #777; font-size: 11px; border-bottom: 1px solid #111; }
+.agent-branch-table > div { display: contents; }
+.agent-branch-table > div > * { padding: 8px; font-size: 12px; border-bottom: 1px solid #ededed; }
+.agent-branch-table > div > strong { color: #222; font-weight: 500; }
+.agent-branch-table > div > span { color: #555; }
+.agent-branch-table > div > b { color: #111; font-weight: 600; }
+.agent-branch-result > small { color: #666; font-size: 11px; line-height: 1.5; }
+
+.agent-replan {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #d7d7d7;
+}
+.agent-replan label { color: #333; font-size: 12px; font-weight: 500; }
+.agent-replan textarea {
+  width: 100%;
+  min-height: 76px;
+  padding: 10px;
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+  background: #fff;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
+}
+.agent-replan textarea:focus { border-color: #111; outline: 1px solid #111; }
+.agent-replan .button { justify-self: start; }
+
 .agent-workspace {
   display: grid;
   grid-template-columns: minmax(230px, 0.72fr) minmax(420px, 1.8fr) minmax(230px, 0.72fr);

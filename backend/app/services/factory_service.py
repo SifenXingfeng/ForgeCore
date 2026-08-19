@@ -71,6 +71,7 @@ async def load_full_snapshot(factory_id: str, db: AsyncSession) -> Factory | Non
     result = await db.execute(
         select(Factory)
         .where(Factory.id == factory_id)
+        .execution_options(populate_existing=True)
         .options(
             selectinload(Factory.floors),
             selectinload(Factory.factory_objects),

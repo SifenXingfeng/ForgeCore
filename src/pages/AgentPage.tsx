@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import {
   AlertTriangle,
+  Activity,
   ArrowRight,
   Bot,
   Check,
@@ -27,6 +28,8 @@ import type { AppPage } from '../components/Sidebar'
 import { ApiError } from '../repository/apiClient'
 import {
   agentRepository,
+  simulationOperationsForPatch,
+  writeAgentPatch,
   type AgentFinding,
   type AgentPatch,
   type AgentRun,
@@ -36,6 +39,8 @@ import {
 import { factoryRepository } from '../repository/factoryRepository'
 import { subscribeAgentEvents } from '../repository/realtimeRepository'
 import { useForgeStore } from '../store/useForgeStore'
+import { simulationBranchRepository } from '../repository/simulationBranchRepository'
+import type { SimulationBranchResult } from '../domain/simulationBranch'
 
 const ease = [0.16, 1, 0.3, 1] as const
 const DEFAULT_OBJECTIVE = '检查当前工厂的生产、库存和物流瓶颈'
@@ -48,6 +53,8 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
   const [busy, setBusy] = useState(false)
   const [patchBusy, setPatchBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [branchResult, setBranchResult] = useState<SimulationBranchResult | null>(null)
   const streamDisposer = useRef<(() => void) | null>(null)
   const refreshQueued = useRef(false)
   const { factory, saveStatus, saveFactory, selectObject, restoreFactory } = useForgeStore()
@@ -66,6 +73,12 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
     void loadHistory()
     return () => streamDisposer.current?.()
   }, [loadHistory])
+
+  useEffect(() => {
+    const latestPatch = run?.patches?.at(-1) ?? null
+    writeAgentPatch(factory.id, latestPatch)
+    setBranchResult(null)
+  }, [factory.id, run?.patches])
 
   const refreshRun = useCallback((runId: string) => {
     if (refreshQueued.current) return
@@ -92,6 +105,8 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
       if (!factoryId) throw new Error('当前工厂尚未同步到后端')
       const created = await agentRepository.createRun(factoryId, command, mode)
       setRun(created)
+      setRejectionReason('')
+      setBranchResult(null)
 
       let analysisStarted = false
       const analyze = async () => {
@@ -178,7 +193,50 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
   }
 
   const rejectPatch = async (patch: AgentPatch) => {
-    await withPatchAction(() => agentRepository.rejectPatch(patch.id))
+    await withPatchAction(() => agentRepository.rejectPatch(patch.id, rejectionReason || '用户拒绝当前方案'))
+  }
+
+  const replanPatch = async (patch: AgentPatch) => {
+    if (!rejectionReason.trim()) {
+      setError('请先填写拒绝或冲突原因')
+      return
+    }
+    await withPatchAction(() => agentRepository.replanPatch(patch.id, rejectionReason.trim()).then((nextRun) => {
+      setRun(nextRun)
+      setRejectionReason('')
+      return nextRun.patches.at(-1) as AgentPatch
+    }))
+  }
+
+  const compareBranches = async (patch: AgentPatch) => {
+    if (patchBusy || !patch.operations.length) return
+    setPatchBusy(true)
+    setError(null)
+    try {
+      const state = useForgeStore.getState()
+      const project = {
+        factory: state.factory,
+        floors: state.floors,
+        objects: state.objects,
+        items: state.items,
+        recipes: state.recipes,
+        inventory: state.inventory,
+        transportCapabilities: state.transportCapabilities,
+        simulation: state.simulation,
+        metrics: state.metrics,
+        metricSeries: state.metricSeries,
+        activities: state.activities,
+      }
+      setBranchResult(await simulationBranchRepository.compare(
+        project,
+        simulationOperationsForPatch(patch),
+        run?.compiled_goal?.time_horizon_sec ?? 3600,
+      ))
+    } catch (reason) {
+      setError(errorMessage(reason))
+    } finally {
+      setPatchBusy(false)
+    }
   }
 
   const rollbackPatch = async (patch: AgentPatch) => {
@@ -191,7 +249,7 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
 
   const status = run?.status ?? 'created'
   const running = busy || isRunning(status)
-  const activePatch = run?.patches?.[0] ?? null
+  const activePatch = run?.patches?.at(-1) ?? null
 
   return (
     <div className="page page--agent">
@@ -298,6 +356,12 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
                     </li>
                   ))}
                 </ol>
+                {activePatch.operations.length > 0 && !['applied', 'rolled_back', 'failed'].includes(activePatch.status) && (
+                  <button className="agent-branch-run" disabled={patchBusy || running} onClick={() => void compareBranches(activePatch)}>
+                    <Activity />{patchBusy ? '分支运行中' : '运行双分支对比'}
+                  </button>
+                )}
+                {branchResult && <BranchComparison result={branchResult} />}
                 <div className="agent-patch__actions">
                   {(activePatch.status === 'awaiting_approval' || activePatch.status === 'validated' || activePatch.status === 'approved') && (
                     <>
@@ -316,6 +380,21 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
                   )}
                   {activePatch.error && <strong className="agent-patch__error">{activePatch.error}</strong>}
                 </div>
+                {activePatch.status === 'rejected' && (
+                  <div className="agent-replan">
+                    <label htmlFor="agent-rejection-reason">拒绝或冲突原因</label>
+                    <textarea
+                      id="agent-rejection-reason"
+                      rows={3}
+                      value={rejectionReason}
+                      onChange={(event) => setRejectionReason(event.target.value)}
+                      placeholder="例如：入口区域需要留空，改到厂房右侧"
+                    />
+                    <button className="button" disabled={patchBusy || !rejectionReason.trim()} onClick={() => void replanPatch(activePatch)}>
+                      <RefreshCw />重新规划
+                    </button>
+                  </div>
+                )}
               </article>
             )}
 
@@ -376,6 +455,36 @@ export function AgentPage({ onNavigate }: { onNavigate: (page: AppPage) => void 
       </section>}
     </div>
   )
+}
+
+function BranchComparison({ result }: { result: SimulationBranchResult }) {
+  const rows: Array<[string, number, number, number, number]> = [
+    ['吞吐/分钟', result.baseline.throughputPerMin, result.proposal.throughputPerMin, result.delta.throughputPerMin, 1],
+    ['累计成品', result.baseline.totalProduced, result.proposal.totalProduced, result.delta.totalProduced, 0],
+    ['在制品', result.baseline.workInProgress, result.proposal.workInProgress, result.delta.workInProgress, 0],
+    ['阻塞对象', result.baseline.blockedObjects, result.proposal.blockedObjects, result.delta.blockedObjects, 0],
+    ['平均运输秒数', result.baseline.averageTransportSec, result.proposal.averageTransportSec, result.delta.averageTransportSec, 2],
+    ['库存总量', result.baseline.inventoryTotal, result.proposal.inventoryTotal, result.delta.inventoryTotal, 0],
+  ]
+  return <section className="agent-branch-result" aria-label="仿真分支对比结果">
+    <header>
+      <div><span>SIMULATION BRANCH</span><strong>{recommendationLabel(result.recommendation)}</strong></div>
+      <b>{result.score.toFixed(1)}</b>
+    </header>
+    <div className="agent-branch-table">
+      <span>指标</span><span>当前</span><span>候选</span><span>差异</span>
+      {rows.map(([label, baseline, proposal, delta, digits]) => <div key={label}>
+        <strong>{label}</strong>
+        <span>{baseline.toFixed(digits)}</span>
+        <span>{proposal.toFixed(digits)}</span>
+        <b>{signed(delta, digits)}</b>
+      </div>)}
+    </div>
+    <small>
+      {formatDuration(result.horizonSec)} · {result.steps.toLocaleString('zh-CN')} 固定步 · 吞吐提升
+      {' '}{result.throughputImprovementPercent == null ? '—' : `${result.throughputImprovementPercent.toFixed(1)}%`}
+    </small>
+  </section>
 }
 
 function StatusIcon({ status }: { status: AgentRunStatus }) {
@@ -452,6 +561,8 @@ function patchStatusLabel(status: string) {
 }
 function riskLabel(risk: string) { return ({ low: '低风险', medium: '中风险', high: '高风险' } as Record<string, string>)[risk] ?? risk }
 function opKindLabel(kind: string) { return ({ move_object: '移动对象', update_config: '更新配置', adjust_inventory: '调整库存', add_object: '新增对象', remove_object: '删除对象' } as Record<string, string>)[kind] ?? kind }
+function recommendationLabel(value: SimulationBranchResult['recommendation']) { return ({ apply: '建议应用', iterate: '建议迭代', discard: '建议放弃' } as const)[value] }
+function signed(value: number, digits = 1) { return `${value > 0 ? '+' : ''}${value.toFixed(digits)}` }
 function formatNumber(value?: number) { return Number.isFinite(value) ? Number(value).toFixed(1) : '0.0' }
 function formatDuration(seconds: number) { const m = Math.floor(seconds / 60); const s = Math.floor(seconds % 60); return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` }
 function formatDate(value: string) { return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) }

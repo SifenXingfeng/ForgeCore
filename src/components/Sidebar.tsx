@@ -91,13 +91,6 @@ export const APP_NAVIGATION: readonly NavigationItem[] = [
     description: "审计模型来源与使用许可",
     icon: BadgeInfo,
   },
-  {
-    id: "agent",
-    label: "Agent 方案",
-    shortLabel: "Agent",
-    description: "生成、审核与回滚设计补丁",
-    icon: Bot,
-  },
 ] as const;
 
 export function Sidebar({

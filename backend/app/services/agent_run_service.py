@@ -424,6 +424,93 @@ async def reject_agent_patch(patch: AgentPatch, db: AsyncSession, *, note: str |
     return refreshed
 
 
+async def replan_agent_patch(
+    patch: AgentPatch,
+    db: AsyncSession,
+    *,
+    rejection_reason: str,
+) -> AgentRun:
+    if patch.status not in {"rejected", "failed"}:
+        raise ValueError("仅已拒绝或已冲突的 Patch 可重新规划")
+    run = await load_agent_run(patch.run_id, db)
+    if run is None:
+        raise ValueError("Agent run 不存在")
+    factory = await load_full_snapshot(patch.factory_id, db)
+    if factory is None:
+        raise ValueError("工厂不存在")
+
+    goal = compile_factory_goal(run.objective, factory, mode="plan_design")
+    findings = list(_dict(run.result).get("findings") or [])
+    package = build_patch_package(
+        factory,
+        findings,
+        goal,
+        run_id=run.id,
+        rejected_operations=list(patch.operations),
+    )
+    if not package["operations"] or not package["validation"].get("ok"):
+        raise ValueError("拒绝条件下未找到不同且合法的替代方案")
+
+    revision = len(run.patches) + 1
+    diff_summary = dict(package["diff_summary"])
+    diff_summary.update(
+        {
+            "revision": revision,
+            "replan_of": patch.id,
+            "rejection_reason": rejection_reason.strip(),
+        }
+    )
+    replacement = AgentPatch(
+        run_id=run.id,
+        factory_id=run.factory_id,
+        owner_id=run.owner_id,
+        base_version=str(package["base_version"]),
+        status="awaiting_approval",
+        risk_level=str(package["risk_level"]),
+        idempotency_key=str(package["idempotency_key"]),
+        operations=list(package["operations"]),
+        inverse_operations=list(package["inverse_operations"]),
+        preconditions=list(package["preconditions"]),
+        impact=dict(package["impact"]),
+        validation=dict(package["validation"]),
+        diff_summary=diff_summary,
+    )
+    db.add(replacement)
+    await db.flush()
+    db.add(
+        AgentApproval(
+            patch_id=replacement.id,
+            run_id=run.id,
+            owner_id=run.owner_id,
+            status="pending",
+            summary=f"第 {revision} 版替代方案待审批",
+            risk_level=replacement.risk_level,
+        )
+    )
+    run.compiled_goal = goal
+    run.base_factory_updated_at = factory.updated_at
+    run.status = "awaiting_approval"
+    run.completed_at = None
+    run.error = None
+    run.summary = f"第 {revision} 版替代方案待审批：{len(replacement.operations)} 项变更"
+    await db.commit()
+    await _emit(
+        run.id,
+        "agent_patch_replanned",
+        {
+            "run_id": run.id,
+            "patch_id": replacement.id,
+            "replan_of": patch.id,
+            "revision": revision,
+            "operation_count": len(replacement.operations),
+        },
+        db,
+    )
+    refreshed = await load_agent_run(run.id, db)
+    assert refreshed is not None
+    return refreshed
+
+
 async def apply_agent_patch(patch: AgentPatch, db: AsyncSession) -> AgentPatch:
     if patch.status not in {"approved", "awaiting_approval", "validated"}:
         raise ValueError("当前 Patch 不可应用")

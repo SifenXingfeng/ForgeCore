@@ -654,23 +654,23 @@ async def test_structural_add_remove_roundtrip_and_conveyor_guard(client: AsyncC
 async def test_structural_add_apply_and_rollback_via_api(client: AsyncClient):
     """Directly construct a validated add_object patch through analyze is optional;
     apply path is exercised by seeding factory then using service package + API."""
+    from app.database import get_db
+    from app.main import app
+    from app.models.agent import AgentApproval, AgentPatch, AgentRun
     from app.services.factory_patch_service import (
         apply_ops_in_memory,
         build_diff_summary,
         build_inverse_ops,
         design_from_factory,
-        design_to_sync_request,
         validate_design,
     )
-    from app.services.factory_service import load_full_snapshot, sync_factory_snapshot
-    from app.models.agent import AgentApproval, AgentPatch, AgentRun
-    from sqlalchemy import select
+    from app.services.factory_service import load_full_snapshot
 
     headers = await _register(client, "struct")
     factory_id, before = await _seed_factory(client, headers)
 
     # Build structural patch ops against live factory via internal helpers, persist via analyze-like path.
-    # Use API apply by inserting patch through DB session on the test client app - simpler: sync a free-space add via patch endpoints after creating run manually.
+    # Persist a validated structural patch through the same database model used by analyze.
 
     # Create run shell
     created = await client.post(
@@ -693,9 +693,6 @@ async def test_structural_add_apply_and_rollback_via_api(client: AsyncClient):
     # Direct unit of API: create patch is only via analyze. Use analyze and if no add_object, fall back to
     # service-level apply simulation + sync_factory_snapshot to still cover apply_ops path already tested.
     # Instead inject via agent_run after analyze by creating patch through code using app dependency.
-
-    from app.main import app
-    from app.database import get_db
 
     # Grab the overridden db session from the test app
     async for db in app.dependency_overrides[get_db]():
@@ -775,3 +772,57 @@ async def test_structural_add_apply_and_rollback_via_api(client: AsyncClient):
     assert rolled.status_code == 200, rolled.text
     final = (await client.get(f"/api/factories/{factory_id}", headers=headers)).json()
     assert all(obj["id"] != "obj-buffer-api" for obj in final["objects"])
+
+
+async def test_rejected_patch_replans_to_a_new_revision(client: AsyncClient):
+    headers = await _register(client, "replan")
+    factory_id, _ = await _seed_factory(client, headers)
+    created = await client.post(
+        "/api/agent/runs",
+        headers=headers,
+        json={
+            "factory_id": factory_id,
+            "objective": "新增一架无人机优化跨层物流",
+            "mode": "plan_design",
+        },
+    )
+    assert created.status_code == 201, created.text
+    analyzed = await client.post(
+        f"/api/agent/runs/{created.json()['id']}/analyze",
+        headers=headers,
+    )
+    assert analyzed.status_code == 200, analyzed.text
+    first = analyzed.json()["patches"][-1]
+    first_add = next(op for op in first["operations"] if op["kind"] == "add_object")
+
+    rejected = await client.post(
+        f"/api/agent/patches/{first['id']}/reject",
+        headers=headers,
+        json={"note": "入口区域需要留空"},
+    )
+    assert rejected.status_code == 200, rejected.text
+    replanned = await client.post(
+        f"/api/agent/patches/{first['id']}/replan",
+        headers=headers,
+        json={"rejection_reason": "入口区域需要留空"},
+    )
+    assert replanned.status_code == 200, replanned.text
+    body = replanned.json()
+    assert body["status"] == "awaiting_approval"
+    assert len(body["patches"]) == 2
+    replacement = body["patches"][-1]
+    replacement_add = next(op for op in replacement["operations"] if op["kind"] == "add_object")
+    assert replacement["diff_summary"]["revision"] == 2
+    assert replacement["diff_summary"]["replan_of"] == first["id"]
+    assert replacement["base_version"] == body["compiled_goal"]["baseline_version"]
+    assert (replacement_add["params"]["x"], replacement_add["params"]["z"]) != (
+        first_add["params"]["x"],
+        first_add["params"]["z"],
+    )
+
+    repeat = await client.post(
+        f"/api/agent/patches/{replacement['id']}/replan",
+        headers=headers,
+        json={"rejection_reason": "尚未拒绝"},
+    )
+    assert repeat.status_code == 409

@@ -449,9 +449,10 @@ def validate_design(
             errors.append(f"对象 {obj['id']} 的占地无效")
         x = float(obj["transform_x"])
         z = float(obj["transform_z"])
-        if kind != "conveyor":
-            if x < -1e-6 or z < -1e-6 or x + fw > width + 1e-6 or z + fd > length + 1e-6:
-                errors.append(f"对象 {obj['id']} 超出厂区边界")
+        if kind != "conveyor" and (
+            x < -1e-6 or z < -1e-6 or x + fw > width + 1e-6 or z + fd > length + 1e-6
+        ):
+            errors.append(f"对象 {obj['id']} 超出厂区边界")
         if kind == "conveyor":
             config = dict(obj.get("config") or {})
             for key in ("fromObjectId", "toObjectId"):
@@ -496,7 +497,6 @@ def validate_design(
                 errors.append(f"对象 {left['id']} 与 {right['id']} 占地冲突")
 
     candidate_counts = _kind_counts(candidate)
-    baseline_counts = _kind_counts(baseline)
     for constraint in hard_constraints or []:
         key = str(constraint.get("key") or "")
         operator = str(constraint.get("operator") or "eq")
@@ -613,18 +613,45 @@ def propose_ops_from_analysis(
     factory: Factory,
     findings: list[dict[str, Any]],
     goal: dict[str, Any] | None = None,
+    *,
+    rejected_operations: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Rule-based proposer: inventory/config first, then structural add when unlocked."""
     design = design_from_factory(factory)
+    slot_design = copy.deepcopy(design)
     goal = goal or {}
+    rejected_operations = rejected_operations or []
+    rejected_signatures = {_operation_signature(op) for op in rejected_operations}
+    rejected_remove_ids = {
+        str(op.get("object_id")) for op in rejected_operations if str(op.get("kind")) == "remove_object"
+    }
+    for index, op in enumerate(rejected_operations):
+        if str(op.get("kind")) != "add_object":
+            continue
+        params = dict(op.get("params") or {})
+        default_width, default_depth = DEFAULT_FOOTPRINTS.get(str(params.get("kind")), (1, 1))
+        slot_design["objects"].append(
+            {
+                "id": f"__rejected-placement-{index}",
+                "floor_id": str(params.get("floor_id") or ""),
+                "kind": str(params.get("kind") or "machine"),
+                "transform_x": float(params.get("x") or 0),
+                "transform_z": float(params.get("z") or 0),
+                "footprint_width": float(params.get("footprint_width") or default_width),
+                "footprint_depth": float(params.get("footprint_depth") or default_depth),
+            }
+        )
     hard_constraints = [c for c in (goal.get("hard_constraints") or []) if isinstance(c, dict)]
     locked = _locked_count_kinds(hard_constraints)
     ops: list[dict[str, Any]] = []
     finding_ids = {str(item.get("id")) for item in findings}
     finding_categories = {str(item.get("category")) for item in findings}
+    objective = str(goal.get("objective") or "").lower()
 
     def try_append(op: dict[str, Any]) -> bool:
         if len(ops) >= MAX_PATCH_OPS:
+            return False
+        if _operation_signature(op) in rejected_signatures:
             return False
         trial_ops = [*ops, op]
         try:
@@ -635,7 +662,99 @@ def propose_ops_from_analysis(
         if not validation["ok"]:
             return False
         ops.append(op)
+        if str(op.get("kind")) == "add_object":
+            try:
+                updated_slot_design = apply_ops_in_memory(slot_design, [copy.deepcopy(op)])
+                slot_design["objects"] = updated_slot_design["objects"]
+            except ValueError:
+                pass
         return True
+
+    requested_kind = next(
+        (
+            kind
+            for kind, tokens in (
+                ("drone", ("无人机", "drone")),
+                ("agv", ("agv",)),
+                ("rack", ("仓库", "warehouse", "rack")),
+                ("shelf", ("货架", "shelf")),
+                ("buffer", ("缓冲区", "buffer")),
+                ("machine", ("机器", "设备", "machine")),
+            )
+            if any(token in objective for token in tokens)
+        ),
+        None,
+    )
+    requests_add = any(token in objective for token in ("新增", "增加", "添加", "add", "扩容"))
+    requests_remove = any(token in objective for token in ("删除", "移除", "拆除", "remove", "delete"))
+
+    if requests_remove:
+        referenced = {
+            str(config.get(key))
+            for obj in design["objects"]
+            if str(obj.get("kind")) == "conveyor"
+            for config in [dict(obj.get("config") or {})]
+            for key in ("fromObjectId", "toObjectId")
+            if config.get(key)
+        }
+        for obj in design["objects"]:
+            object_id = str(obj.get("id") or "")
+            if (
+                str(obj.get("kind")) == "conveyor"
+                or object_id in referenced
+                or object_id in rejected_remove_ids
+                or (requested_kind and str(obj.get("kind")) != requested_kind)
+            ):
+                continue
+            if try_append(
+                {
+                    "op_id": f"op-{len(ops) + 1}",
+                    "kind": "remove_object",
+                    "object_id": object_id,
+                    "params": {},
+                    "preconditions": [{"type": "object_exists", "object_id": object_id}],
+                    "risk": "high",
+                    "summary": f"移除 {obj.get('name', object_id)}",
+                }
+            ):
+                break
+
+    if requests_add and requested_kind and requested_kind not in locked:
+        slot = _find_free_slot(slot_design, footprint=DEFAULT_FOOTPRINTS[requested_kind])
+        if slot is not None:
+            new_id = f"obj-{uuid.uuid4().hex[:12]}"
+            config: dict[str, Any] = {"kind": requested_kind}
+            if requested_kind == "machine":
+                template = next((obj for obj in design["objects"] if str(obj.get("kind")) == "machine"), None)
+                template_config = dict(template.get("config") or {}) if template else {}
+                config = copy.deepcopy(template_config) or {
+                    "kind": "machine", "recipeId": None, "inputCapacity": 6, "outputCapacity": 6,
+                    "speedMultiplier": 1, "inputPortCount": 3, "outputPortCount": 3,
+                }
+            elif requested_kind == "agv":
+                config.update({"speedMps": 1.5, "maxPayloadKg": 50})
+            elif requested_kind == "drone":
+                config.update({"speedMps": 3, "maxPayloadKg": 30})
+            elif requested_kind == "rack":
+                config.update({"dispatchIntervalSecByPort": [2, 2, 2]})
+            try_append(
+                {
+                    "op_id": f"op-{len(ops) + 1}",
+                    "kind": "add_object",
+                    "object_id": new_id,
+                    "params": {
+                        "kind": requested_kind,
+                        "floor_id": slot["floor_id"],
+                        "x": slot["x"],
+                        "z": slot["z"],
+                        "name": f"Agent {requested_kind}",
+                        "config": config,
+                    },
+                    "preconditions": [{"type": "floor_exists", "floor_id": slot["floor_id"]}],
+                    "risk": "medium",
+                    "summary": f"新增 {requested_kind}",
+                }
+            )
 
     if "inventory-shortage" in finding_ids or "inventory" in finding_categories:
         for row in design["inventory"]:
@@ -668,7 +787,7 @@ def propose_ops_from_analysis(
     ) or "production" in finding_categories
     if capacity_pressure and "machine" not in locked:
         template = next((obj for obj in design["objects"] if str(obj["kind"]) == "machine"), None)
-        slot = _find_free_slot(design, footprint=DEFAULT_FOOTPRINTS["machine"])
+        slot = _find_free_slot(slot_design, footprint=DEFAULT_FOOTPRINTS["machine"])
         if template is not None and slot is not None:
             new_id = f"obj-{uuid.uuid4().hex[:12]}"
             config = copy.deepcopy(template.get("config") or {"kind": "machine"})
@@ -698,7 +817,7 @@ def propose_ops_from_analysis(
         str(item_id).endswith("-blocked") for item_id in finding_ids
     )
     if logistics_pressure and "agv" not in locked:
-        slot = _find_free_slot(design, footprint=DEFAULT_FOOTPRINTS["agv"])
+        slot = _find_free_slot(slot_design, footprint=DEFAULT_FOOTPRINTS["agv"])
         if slot is not None:
             new_id = f"obj-{uuid.uuid4().hex[:12]}"
             try_append(
@@ -723,7 +842,7 @@ def propose_ops_from_analysis(
     if ("inventory-shortage" in finding_ids or "inventory" in finding_categories) and not any(
         str(obj["kind"]) in {"rack", "buffer", "shelf"} for obj in design["objects"]
     ):
-        slot = _find_free_slot(design, footprint=DEFAULT_FOOTPRINTS["rack"])
+        slot = _find_free_slot(slot_design, footprint=DEFAULT_FOOTPRINTS["rack"])
         if slot is not None:
             new_id = f"obj-{uuid.uuid4().hex[:12]}"
             try_append(
@@ -819,11 +938,12 @@ def build_patch_package(
     goal: dict[str, Any] | None = None,
     *,
     run_id: str,
+    rejected_operations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     baseline = design_from_factory(factory)
     goal = goal or {}
     hard_constraints = list(goal.get("hard_constraints") or [])
-    ops = propose_ops_from_analysis(factory, findings, goal)
+    ops = propose_ops_from_analysis(factory, findings, goal, rejected_operations=rejected_operations)
     if not ops:
         return {
             "operations": [],
@@ -972,6 +1092,25 @@ def _collect_preconditions(ops: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _ops_hash(ops: list[dict[str, Any]]) -> str:
     raw = json.dumps(ops, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _operation_signature(op: dict[str, Any]) -> tuple[object, ...]:
+    kind = str(op.get("kind") or "")
+    params = dict(op.get("params") or {})
+    if kind == "add_object":
+        return (
+            kind,
+            str(params.get("kind") or ""),
+            str(params.get("floor_id") or ""),
+            float(params.get("x") or 0),
+            float(params.get("z") or 0),
+        )
+    if kind == "update_config":
+        config_signature = json.dumps(params.get("config_patch") or params, sort_keys=True, default=str)
+        return (kind, str(op.get("object_id") or ""), config_signature)
+    if kind == "move_object":
+        return (kind, str(op.get("object_id") or ""), float(params.get("x") or 0), float(params.get("z") or 0))
+    return (kind, str(op.get("object_id") or ""))
 
 
 

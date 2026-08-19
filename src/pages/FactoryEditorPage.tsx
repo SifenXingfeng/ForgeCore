@@ -4,7 +4,7 @@ import { FactoryScene, type AgentSceneDiff, type FactorySceneHandle, type Placem
 import { INCLINE_REFERENCE_RUN_M, MACHINE_PORT_INDICES, alignPathToPorts, appendGridTrace, conveyorEndpointFloorId, inclineHorizontalRun, nearestConveyorPort, pathFromGridTrace, polylineLength, supportsTripleConveyorPorts, type ConveyorEndpointSnap, type GridPoint, type MachinePortIndex } from '../domain/conveyorPath'
 import { conveyorPlacementBlocked, facilityPlacementBlocked } from '../domain/placementCollision'
 import { useForgeStore } from '../store/useForgeStore'
-import { agentRepository, readAgentPatch, type AgentPatch } from '../repository/agentRepository'
+import { normalizeAgentObject, readAgentPatch, type AgentPatch } from '../repository/agentRepository'
 import { useShallow } from 'zustand/react/shallow'
 import type { AppPage } from '../components/Sidebar'
 import type { AgvProgram, ConveyorObjectConfig, FactoryObject, FactoryObjectKind, Floor, FloorVisibilityMode, GridTransform, InventoryRecord, Item, NewFactoryObject, RackObjectConfig, Recipe, SimulationSpeed, VehicleObjectConfig, WarehouseDispatchIntervalsSec } from '../types'
@@ -129,18 +129,17 @@ export function FactoryEditorPage({ onNavigate }: { onNavigate: (page: AppPage) 
     [floorEnabledById, floors],
   )
   const agentDiff = useMemo<AgentSceneDiff | null>(() => {
-    if (!agentPatch || agentPatch.status === 'rolled_back' || agentPatch.status === 'applied') return null
-    const added = agentPatch.ops.flatMap((operation) => {
-      if (operation.op !== 'add_object' || !operation.object) return []
-      const object = agentRepository.normalizeObject(operation.object)
+    if (!agentPatch || ['rolled_back', 'applied', 'superseded'].includes(agentPatch.status)) return null
+    const added = agentPatch.operations.flatMap((operation) => {
+      const object = normalizeAgentObject(operation)
       if (!object?.id || !object.floorId || !object.footprint) return []
       return [{ id: object.id, floorId: object.floorId, kind: object.kind, name: object.name ?? '未命名对象', transform: { x: object.transform.x, z: object.transform.z, rotationY: object.transform.rotationY }, footprint: object.footprint }]
     })
     return {
-      status: agentPatch.status ?? 'proposed',
+      status: agentPatch.status === 'rejected' || agentPatch.status === 'failed' ? 'rejected' : 'proposed',
       added,
-      removedIds: agentPatch.ops.flatMap((operation) => operation.op === 'remove_object' && operation.object_id ? [operation.object_id] : []),
-      updatedIds: agentPatch.ops.flatMap((operation) => operation.op === 'update_object' && operation.object_id ? [operation.object_id] : []),
+      removedIds: agentPatch.operations.flatMap((operation) => operation.kind === 'remove_object' && operation.object_id ? [operation.object_id] : []),
+      updatedIds: agentPatch.operations.flatMap((operation) => ['move_object', 'update_config'].includes(operation.kind) && operation.object_id ? [operation.object_id] : []),
     }
   }, [agentPatch])
   const nextFloor = activeFloor ? floors.find((floor) => floor.level === activeFloor.level + 1) : undefined
