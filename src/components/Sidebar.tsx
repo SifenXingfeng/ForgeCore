@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   BadgeInfo,
+  Bot,
   Boxes,
   Factory,
   LayoutDashboard,
@@ -16,6 +17,7 @@ export type AppPage =
   | "recipes"
   | "simulation"
   | "logistics"
+  | "agent"
   | "assets";
 
 export interface SidebarProps {
@@ -74,6 +76,13 @@ export const APP_NAVIGATION: readonly NavigationItem[] = [
     shortLabel: "物流",
     description: "查看仓储、运输与任务",
     icon: Warehouse,
+  },
+  {
+    id: "agent",
+    label: "Factory Agent",
+    shortLabel: "Agent",
+    description: "诊断工厂并执行受控工具",
+    icon: Bot,
   },
   {
     id: "assets",

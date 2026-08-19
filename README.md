@@ -95,7 +95,9 @@ npm run build
 - JWT 注册、登录、刷新和登出，工厂全量同步、仿真状态、指标与活动持久化；
 - Redis Pub/Sub 与工厂/Agent SSE 事件流；
 - 蓝图保存、公开发现、搜索、标签、热门排序、收藏、fork 及 `.fcbp` 导入导出；
-- 七个任务页面、多层 3D 编辑、固定步长仿真、AGV 二维 A* 与无人机三维 A*；
+- 八个任务页面、多层 3D 编辑、固定步长仿真、AGV 二维 A* 与无人机三维 A*；
+- Factory Agent Control Room、PostgreSQL 持久化 run/step/tool call/event、12 个只读工厂工具、目标编译与工厂依赖图、确定性瓶颈诊断与历史运行；
+- Agent A2 最小可验收：`plan_design` 模式、FactoryPatch 差异预览、审批后单次 apply、`base_version` 冲突拒绝与回滚；
 - 36 个 first-party 参数化物品模型和可追溯的第三方资产治理。
 
-仿真引擎当前仍以 TypeScript 在浏览器运行，后端负责用户、项目、历史数据、蓝图和 Agent 编排。Agent 已具备稳定会话与 Suggestion/SSE 契约，真实 LLM provider 和前端 Agent/蓝图工作台属于后续接入范围。权威范围与技术约束以 [ForgeCore 项目方案.md](<ForgeCore 项目方案.md>) 为准。
+仿真引擎当前仍以 TypeScript 在浏览器运行，后端负责用户、项目、历史数据、蓝图和 Agent 编排。Agent 已交付无需 LLM 也能工作的 A1 分析与 A2 最小 Patch 审批闭环；headless 分支仿真与多目标优化按 A3-A4 路线继续接入。权威范围与技术约束以 [ForgeCore 项目方案.md](<ForgeCore 项目方案.md>) 为准。

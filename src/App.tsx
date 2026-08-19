@@ -9,6 +9,7 @@ import { RecipesPage } from './pages/RecipesPage'
 import { SimulationPage } from './pages/SimulationPage'
 import { AuthPage } from './pages/AuthPage'
 import { MainMenuPage } from './pages/MainMenuPage'
+import { AgentPage } from './pages/AgentPage'
 import { useForgeStore } from './store/useForgeStore'
 import { useShallow } from 'zustand/react/shallow'
 import { factoryRepository, uiPreferenceRepository } from './repository/factoryRepository'
@@ -17,7 +18,7 @@ import { subscribeFactoryEvents } from './repository/realtimeRepository'
 import type { ActivityEvent, MetricSample } from './types'
 
 const pageTitles: Record<AppPage, string> = {
-  overview: '运行总览', editor: '工厂编辑器', items: '物品模型', recipes: '配方工艺', simulation: '仿真监控', logistics: '物流仓储', assets: '资产中心',
+  overview: '运行总览', editor: '工厂编辑器', items: '物品模型', recipes: '配方工艺', simulation: '仿真监控', logistics: '物流仓储', agent: 'Factory Agent', assets: '资产中心',
 }
 const pageIds = Object.keys(pageTitles) as AppPage[]
 const FactoryEditorPage = lazy(() => import('./pages/FactoryEditorPage').then((module) => ({ default: module.FactoryEditorPage })))
@@ -172,6 +173,7 @@ export default function App() {
       {page === 'recipes' && <RecipesPage onNavigate={setPage} />}
       {page === 'simulation' && <SimulationPage />}
       {page === 'logistics' && <LogisticsPage />}
+      {page === 'agent' && <AgentPage onNavigate={setPage} />}
       {page === 'assets' && <AssetsPage />}
     </AppShell>
     <div className="toast-stack" aria-live="polite">{toasts.map((toast) => <article className={`toast toast--${toast.tone}`} key={toast.id}>{toast.tone === 'success' ? <CheckCircle2 /> : toast.tone === 'warning' || toast.tone === 'error' ? <AlertTriangle /> : <Info />}<div><strong>{toast.title}</strong>{toast.description && <p>{toast.description}</p>}</div><button onClick={() => dismissToast(toast.id)} aria-label="关闭通知"><X /></button></article>)}</div>

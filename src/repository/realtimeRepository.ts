@@ -7,6 +7,11 @@ export interface FactoryRealtimeHandlers {
   onFactorySynced?: () => void
 }
 
+export interface AgentRealtimeHandlers {
+  onReady?: () => void
+  onEvent?: (event: string, data: Record<string, unknown>) => void
+}
+
 const parseBlock = (block: string): { event: string; data: Record<string, unknown> } | null => {
   const event = block.match(/^event:\s*(.+)$/m)?.[1]?.trim() ?? 'message'
   const dataLine = block.match(/^data:\s*(.+)$/m)?.[1]?.trim()
@@ -49,6 +54,40 @@ export function subscribeFactoryEvents(factoryId: string, handlers: FactoryRealt
       reader.releaseLock()
     } catch {
       // Realtime is an enhancement; the local simulation keeps running if the stream drops.
+    }
+  }
+  void consume()
+  return () => controller.abort()
+}
+
+export function subscribeAgentEvents(runId: string, handlers: AgentRealtimeHandlers): () => void {
+  const controller = new AbortController()
+  const consume = async () => {
+    try {
+      const response = await fetch(`/api/realtime/agent/${encodeURIComponent(runId)}/stream`, {
+        headers: { Accept: 'text/event-stream', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+        signal: controller.signal,
+      })
+      if (!response.ok || !response.body) return
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      while (!controller.signal.aborted) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const blocks = buffer.split(/\r?\n\r?\n/)
+        buffer = blocks.pop() ?? ''
+        for (const block of blocks) {
+          const parsed = parseBlock(block)
+          if (!parsed) continue
+          if (parsed.event === 'ready') handlers.onReady?.()
+          else handlers.onEvent?.(parsed.event, parsed.data)
+        }
+      }
+      reader.releaseLock()
+    } catch {
+      // The run remains queryable through the durable HTTP API if realtime drops.
     }
   }
   void consume()

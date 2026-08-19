@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     llm_provider: str | None = None
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o"
+    llm_base_url: str = "https://api.openai.com/v1"
+    agent_llm_timeout_seconds: float = 15
     agent_session_ttl_seconds: int = 86400
 
     # ── App ──────────────────────────────────────────────────
