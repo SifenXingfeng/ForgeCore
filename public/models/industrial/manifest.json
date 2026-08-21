@@ -1,0 +1,108 @@
+{
+  "source": "industrial_line_demo.glb",
+  "components": [
+    {
+      "file": "cnc_machining_center.glb",
+      "label": "CNC machining center",
+      "roots": [
+        30
+      ],
+      "nodes": 21,
+      "meshes": 11,
+      "bytes": 17023132
+    },
+    {
+      "file": "robot_cell.glb",
+      "label": "industrial robot cell",
+      "roots": [
+        0,
+        51
+      ],
+      "nodes": 31,
+      "meshes": 11,
+      "bytes": 8003996
+    },
+    {
+      "file": "safety_fence.glb",
+      "label": "safety fence and door",
+      "roots": [
+        53
+      ],
+      "nodes": 25,
+      "meshes": 10,
+      "bytes": 4658028
+    },
+    {
+      "file": "roller_conveyor.glb",
+      "label": "roller conveyor line",
+      "roots": [
+        78
+      ],
+      "nodes": 57,
+      "meshes": 19,
+      "bytes": 4133888
+    },
+    {
+      "file": "roller_conveyor_segment.glb",
+      "label": "single roller conveyor segment",
+      "roots": [
+        79
+      ],
+      "nodes": 14,
+      "meshes": 7,
+      "bytes": 4100136
+    },
+    {
+      "file": "control_cabinet.glb",
+      "label": "standing control cabinet",
+      "roots": [
+        135
+      ],
+      "nodes": 31,
+      "meshes": 13,
+      "bytes": 1818588
+    },
+    {
+      "file": "sensor_pack.glb",
+      "label": "entry and exit sensors",
+      "roots": [
+        166
+      ],
+      "nodes": 9,
+      "meshes": 2,
+      "bytes": 251656
+    },
+    {
+      "file": "hydraulic_press_detail.glb",
+      "label": "detailed hydraulic press",
+      "source": "generated industrial asset",
+      "nodes": 22,
+      "meshes": 21,
+      "bytes": 577772
+    },
+    {
+      "file": "wash_deburr_detail.glb",
+      "label": "detailed deburr and wash cell",
+      "source": "generated industrial asset",
+      "nodes": 27,
+      "meshes": 26,
+      "bytes": 662072
+    },
+    {
+      "file": "pallet_buffer_detail.glb",
+      "label": "detailed pallet buffer rack",
+      "source": "generated industrial asset",
+      "nodes": 29,
+      "meshes": 28,
+      "bytes": 1007732
+    },
+    {
+      "file": "flow_node_detail.glb",
+      "label": "detailed flow node",
+      "source": "generated industrial asset",
+      "nodes": 17,
+      "meshes": 16,
+      "bytes": 397016
+    }
+  ]
+}
