@@ -1,6 +1,6 @@
-# ForgeCore 默认物品模型生成器
+# ForgeMind / ForgeCore 默认物品模型生成器
 
-本目录保存 ForgeCore 原创默认物品模型库的确定性生成与验证工具。产品范围、数据关系和路线图仍以仓库根目录的 `ForgeCore 项目方案.md` 为唯一权威说明；本文件只说明如何生成和检查资产。
+本目录保存从 ForgeCore 迁入的原创默认物品模型库确定性生成与验证工具。融合版产品范围、数据关系和路线图以仓库根目录的 `ForgeMind 项目方案.md` 为唯一权威说明；历史来源与迁移状态见 `docs/ForgeCore-融合迁移审计.md`。
 
 ## 生成全部默认模型
 
@@ -8,7 +8,7 @@
 node tools/item-models/build.mjs
 ```
 
-输出固定写入 `assets/3d/core/items/v1/`，包括 36 个自包含 GLB、对应 PNG 预览、`catalog.json` 和 `SHA256SUMS`。生成器仅使用 Node.js 标准库，不需要安装 npm 依赖。
+输出固定写入 `public/models/forgecore/items/`，包括 36 个自包含 GLB、对应 PNG 预览、`catalog.json` 和 `SHA256SUMS`。生成器仅使用 Node.js 标准库，不需要安装 npm 依赖。
 
 ## 生成一个参数化变体
 
@@ -16,7 +16,7 @@ node tools/item-models/build.mjs
 node tools/item-models/build.mjs --model PART_GEAR --params '{"outerDiameter":0.8,"toothCount":24,"thickness":0.12}' --output .tmp/gear-24t.glb
 ```
 
-稳定的 `modelId`、默认值、类型、范围、步长、单位、枚举选项和影响域都在 `assets/3d/core/items/v1/catalog.json` 中。改变标记为 `geometry` 或 `topology` 的参数会重新生成网格；默认 GLB 只代表默认参数形态，不能把非等比缩放当作全部参数化能力。
+稳定的 `modelId`、默认值、类型、范围、步长、单位、枚举选项和影响域都在 `public/models/forgecore/items/catalog.json` 中。改变标记为 `geometry` 或 `topology` 的参数会重新生成网格；默认 GLB 只代表默认参数形态，不能把非等比缩放当作全部参数化能力。
 
 `activeWhen` 表示条件参数依赖，例如圆柱体只有在 `hollow=true` 时才使用 `wallThickness`，电池只有在 `shape=cylindrical` 时才使用 `diameter`。单模型生成支持 `color`、`metalness`、`roughness`、`opacity` 和 `emission` 的主材质覆盖；`texture` 只是应用层管理的纹理绑定键，离线生成器不会读取网络地址或把外部资源悄悄写入 GLB。
 

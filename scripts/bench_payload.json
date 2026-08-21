@@ -1,0 +1,1 @@
+{"model":"qwen2.5:7b","prompt":"你是智慧工厂控制助手。用户指令：把3号产线的传送带速度调到80%。请直接给出下一步动作。","stream":false,"options":{"num_predict":120}}

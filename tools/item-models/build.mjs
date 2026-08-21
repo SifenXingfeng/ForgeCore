@@ -19,7 +19,7 @@ export const GENERATOR_VERSION = '1.0.0';
 export const REQUIREMENTS_SHA256 = '8848a43224a2c4fe8663159a4272694f4353097d76560a7558eceab35ada9b16';
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-export const DEFAULT_OUTPUT_ROOT = path.resolve(moduleDir, '../../assets/3d/core/items/v1');
+export const DEFAULT_OUTPUT_ROOT = path.resolve(moduleDir, '../../public/models/forgecore/items');
 
 function stableJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;

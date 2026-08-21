@@ -1,9 +1,8 @@
-import type { ModelParameters, ModelParameterValue } from '../types'
+import type { ModelParameters, ModelParameterValue } from '../game/item'
 
-// The canonical first-party generator is deliberately kept beside the audited
-// asset build pipeline. This typed adapter lets the browser reuse the same
-// definitions without copying a second set of geometry rules into src/.
-// @ts-expect-error The canonical generator is a checked JavaScript ESM module.
+// The audited ForgeCore generator is shared with the asset build pipeline so
+// the editor preview and generated GLB catalogue always use the same rules.
+// @ts-expect-error Canonical generator is a checked JavaScript ESM module.
 import { MATERIAL_LIBRARY as materialLibrarySource, MODEL_DEFINITIONS as modelDefinitionsSource, buildModel as buildModelSource } from '../../tools/item-models/src/definitions.mjs'
 
 export type ItemModelParameterType = 'number' | 'integer' | 'boolean' | 'enum' | 'color' | 'string'
@@ -43,7 +42,7 @@ export interface RuntimeMaterialPreset {
   doubleSided?: boolean
 }
 
-export interface RuntimeGeometryPrimitive {
+interface RuntimeGeometryPrimitive {
   material: string
   positions: number[]
   normals: number[]
@@ -51,16 +50,14 @@ export interface RuntimeGeometryPrimitive {
   indices: number[]
 }
 
-export interface RuntimeGeneratedGeometry {
-  bounds: { min: [number, number, number]; max: [number, number, number]; size: [number, number, number] }
-  primitives: RuntimeGeometryPrimitive[]
-  metrics: { vertexCount: number; triangleCount: number; primitiveCount: number; materialCount: number }
-}
-
 export interface RuntimeBuildResult {
   definition: RuntimeItemModelDefinition
   parameters: Readonly<ModelParameters>
-  geometry: RuntimeGeneratedGeometry
+  geometry: {
+    bounds: { min: [number, number, number]; max: [number, number, number]; size: [number, number, number] }
+    primitives: RuntimeGeometryPrimitive[]
+    metrics: { vertexCount: number; triangleCount: number; primitiveCount: number; materialCount: number }
+  }
 }
 
 export const RUNTIME_ITEM_MODEL_DEFINITIONS = modelDefinitionsSource as readonly RuntimeItemModelDefinition[]
@@ -89,7 +86,7 @@ function normalizedParameterValue(schema: ItemModelParameterSchema, source: Mode
     if (options.length > 0 && typeof options[0] === 'number') value = Number(value)
     return options.includes(value) ? value : schema.default
   }
-  return value === null || value === undefined ? schema.default : String(value)
+  return value == null ? schema.default : String(value)
 }
 
 export function resolveModelParameters(modelId: string, overrides: ModelParameters = {}): ModelParameters {
@@ -98,24 +95,14 @@ export function resolveModelParameters(modelId: string, overrides: ModelParamete
   return Object.fromEntries(Object.entries(definition.parameters).map(([key, schema]) => [key, normalizedParameterValue(schema, overrides[key])]))
 }
 
-/**
- * Item.modelParameters stores explicit overrides, not a duplicate of every
- * catalogue default. Unknown keys are removed. A legacy record containing the
- * complete untouched default map is collapsed to an empty override set.
- */
 export function normalizeModelParameterOverrides(modelId: string, source: ModelParameters = {}): ModelParameters {
   const definition = getRuntimeItemModelDefinition(modelId)
   if (!definition) return {}
   const overrides: ModelParameters = {}
   for (const [key, schema] of Object.entries(definition.parameters)) {
     if (!Object.prototype.hasOwnProperty.call(source, key)) continue
-    const value = normalizedParameterValue(schema, source[key])
-    overrides[key] = value
+    overrides[key] = normalizedParameterValue(schema, source[key])
   }
-  const schemaEntries = Object.entries(definition.parameters)
-  const isLegacyUntouchedDefaultMap = Object.keys(overrides).length === schemaEntries.length
-    && schemaEntries.every(([key, schema]) => overrides[key] === normalizedParameterValue(schema, schema.default))
-  if (isLegacyUntouchedDefaultMap) return {}
   return overrides
 }
 

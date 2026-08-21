@@ -9,7 +9,7 @@ import { readGlb } from './src/glb-reader.mjs';
 import { buildLibrary, buildSingleModel } from './build.mjs';
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_ROOT = path.resolve(moduleDir, '../../assets/3d/core/items/v1');
+const DEFAULT_ROOT = path.resolve(moduleDir, '../../public/models/forgecore/items');
 const GEOMETRY_AFFECTS = new Set(['geometry', 'topology', 'bounds']);
 const ALLOWED_AFFECTS = new Set(['geometry', 'topology', 'bounds', 'material', 'rendering', 'uv']);
 const PARAMETER_SCHEMA_KEYS = ['type', 'default', 'min', 'max', 'step', 'unit', 'options', 'affects', 'activeWhen'];

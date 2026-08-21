@@ -1,0 +1,32 @@
+{
+  "model": "qwen2.5:7b",
+  "messages": [
+    {"role": "system", "content": "你是智慧工厂的控制助手。用户用中文下达控制指令，你必须调用 control_factory 工具来执行，不要自由发挥。动作只允许在枚举范围内选择。如果用户指令不在动作库范围内，直接回复说明无法执行，不要调用工具。"},
+    {"role": "user", "content": "把1号产线第2台机器换成钛合金外壳的配方，产线速度提到90"}
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "control_factory",
+        "description": "控制智慧工厂中的设备。所有用户控制指令都必须通过此工具执行。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["set_conveyor_speed", "pause_machine", "resume_machine", "change_recipe"],
+              "description": "要执行的动作类型"
+            },
+            "line_id": {"type": "integer", "description": "产线编号"},
+            "speed": {"type": "number", "description": "速度百分比，0-100"},
+            "machine_id": {"type": "integer", "description": "机器编号"},
+            "recipe": {"type": "string", "description": "配方名称"}
+          },
+          "required": ["action"]
+        }
+      }
+    }
+  ],
+  "stream": false
+}

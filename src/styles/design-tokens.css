@@ -1,0 +1,25 @@
+:root {
+  --fm-bg: #e9ecea;
+  --fm-bg-2: #f7f8f6;
+  --fm-panel: rgba(249, 250, 248, 0.92);
+  --fm-panel-dark: #292d2c;
+  --fm-accent: #e7ad18;
+  --fm-accent-2: #c98709;
+  --fm-cyan: #459ba0;
+  --fm-magenta: #cc6576;
+  --fm-amber: #e7ad18;
+  --fm-text: #252a28;
+  --fm-text-dim: #68716d;
+  --fm-text-faint: #9ba49f;
+  --fm-ok: #3f9d79;
+  --fm-danger: #c95b54;
+  --fm-edge: rgba(42, 50, 47, 0.16);
+  --fm-edge-strong: rgba(42, 50, 47, 0.32);
+  --fm-radius: 2px;
+  --fm-glow: 0 0 0 1px var(--fm-accent), 0 5px 20px rgba(231, 173, 24, 0.16);
+  --fm-font-sans: 'MiSans', 'HarmonyOS Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --fm-font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  --fm-font-display: 'Forge Bigger', 'Arial Narrow', sans-serif;
+  --fm-font-title: 'Forge MaiCai', 'MiSans', 'Microsoft YaHei', sans-serif;
+  --fm-font-data: 'Forge Doto', 'JetBrains Mono', Consolas, monospace;
+}
