@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+  <!--
+    项目专用的最小全局设置。系统 Maven 的全局 settings.xml 指向较慢的
+    HTTP 镜像；构建 ForgeMind 时通过 -gs 使用本文件，改用经过连通性
+    验证的华为云 HTTPS 镜像，同时不修改用户或系统级 Maven 配置。
+  -->
+  <mirrors>
+    <mirror>
+      <id>forgemind-huaweicloud</id>
+      <name>ForgeMind HTTPS Maven mirror</name>
+      <url>https://repo.huaweicloud.com/repository/maven/</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>

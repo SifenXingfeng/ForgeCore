@@ -1,0 +1,114 @@
+{
+  "protocolVersion": "1.0.0",
+  "assistant": "ForgeMind Steward",
+  "tools": [
+    {
+      "name": "query_factory_status",
+      "description": "读取当前工厂的仿真时间、运行状态、在途物料和产出统计。",
+      "risk": "read_only",
+      "requiresConfirmation": false,
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "inspect_object",
+      "description": "读取指定工厂对象的配置和实时状态。",
+      "risk": "read_only",
+      "requiresConfirmation": false,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "objectId": { "type": "string", "minLength": 1 }
+        },
+        "required": ["objectId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "select_object",
+      "description": "在 ForgeMind 界面中选中并定位指定对象。",
+      "risk": "reversible",
+      "requiresConfirmation": false,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "objectId": { "type": "string", "minLength": 1 }
+        },
+        "required": ["objectId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "set_simulation_running",
+      "description": "启动或暂停全局工厂仿真。",
+      "risk": "reversible",
+      "requiresConfirmation": false,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "running": { "type": "boolean" }
+        },
+        "required": ["running"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "set_simulation_speed",
+      "description": "设置全局仿真倍率，允许范围为 0.1 到 4。",
+      "risk": "reversible",
+      "requiresConfirmation": false,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "speed": { "type": "number", "minimum": 0.1, "maximum": 4 }
+        },
+        "required": ["speed"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "reset_simulation",
+      "description": "清空当前运行进度并从工厂配置重新初始化仿真。",
+      "risk": "destructive_runtime",
+      "requiresConfirmation": true,
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "change_machine_recipe",
+      "description": "修改指定加工设备绑定的配方；会重建仿真运行态。",
+      "risk": "configuration_change",
+      "requiresConfirmation": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "objectId": { "type": "string", "minLength": 1 },
+          "recipeId": { "type": ["string", "null"] }
+        },
+        "required": ["objectId", "recipeId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "bind_source_item",
+      "description": "修改指定来料站绑定的产出物品；会重建仿真运行态。",
+      "risk": "configuration_change",
+      "requiresConfirmation": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "objectId": { "type": "string", "minLength": 1 },
+          "itemId": { "type": ["string", "null"] }
+        },
+        "required": ["objectId", "itemId"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

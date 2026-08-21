@@ -1,34 +1,23 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: forgecore-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: forgemind-mysql
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-forgecore}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forgecore_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-forgecore}
+      MYSQL_DATABASE: forgemind
+      MYSQL_USER: forgemind
+      MYSQL_PASSWORD: forgemind
+      MYSQL_ROOT_PASSWORD: forgemind-root
+      TZ: Asia/Shanghai
     ports:
-      - "${POSTGRES_PORT:-5440}:5432"
+      - "3306:3306"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - forgemind_mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-forgecore} -d ${POSTGRES_DB:-forgecore}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
       interval: 5s
-      timeout: 3s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: forgecore-redis
-    ports:
-      - "${REDIS_PORT:-6380}:6379"
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      timeout: 5s
+      retries: 20
 
 volumes:
-  pgdata:
-  redisdata:
+  forgemind_mysql_data:

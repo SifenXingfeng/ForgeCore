@@ -1,0 +1,6 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+numpy>=2.0,<3
+opencv-python>=4.10,<5
+sherpa-onnx>=1.13,<2
